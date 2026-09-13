@@ -958,18 +958,43 @@
   }
 
   // ---------------- best-effort: record a human-readable location for this
-  // login using IP-based geolocation. Never blocks the login flow and fails
-  // silently if the lookup is unavailable. ----------------
-  function recordLoginLocation(username){
+  // login. Prefers the device's real GPS position (accurate) and only
+  // falls back to IP-based geolocation (city-level, sometimes wrong on
+  // mobile networks) if GPS permission isn't granted or isn't available.
+  // Never blocks the login flow and fails silently if unavailable. ----------------
+  function saveLoginLocation(username, text){
+    if(!text) return;
+    var u = state.users.find(function(x){return x.username===username;});
+    if(!u) return;
+    u.lastLoginLocation = text;
+    persistUsers().catch(function(){});
+  }
+  function recordLoginLocationByIp(username){
     fetch('https://ipwho.is/', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
       if(!d || d.success===false) return;
       var parts = [d.city, d.region, d.country].filter(function(p){ return p; });
-      if(!parts.length) return;
-      var u = state.users.find(function(x){return x.username===username;});
-      if(!u) return;
-      u.lastLoginLocation = parts.join('، ');
-      return persistUsers();
+      if(parts.length) saveLoginLocation(username, parts.join('، '));
     }).catch(function(){ /* ignore -- location is best-effort only */ });
+  }
+  function recordLoginLocation(username){
+    if(!navigator.geolocation){
+      recordLoginLocationByIp(username);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat = pos.coords.latitude, lon = pos.coords.longitude;
+      fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=en', {cache:'no-store'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(!d){ recordLoginLocationByIp(username); return; }
+          var parts = [d.locality, d.principalSubdivision, d.countryName].filter(function(p){ return p; });
+          if(parts.length) saveLoginLocation(username, parts.join('، '));
+          else recordLoginLocationByIp(username);
+        }).catch(function(){ recordLoginLocationByIp(username); });
+    }, function(){
+      // permission denied / unavailable -- fall back to the coarser IP lookup
+      recordLoginLocationByIp(username);
+    }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
   }
 
   function doLogout(){
