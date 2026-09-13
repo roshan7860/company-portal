@@ -947,11 +947,29 @@
       var tok = uid();
       found.sessionToken = tok;
       state.mySessionToken = tok;
+      found.lastLoginAt = Date.now();
+      found.onlineStatus = 'online';
       persistUsers();
+      recordLoginLocation(found.username);
     }
     saveSession();
     requestNotificationPermission();
     render();
+  }
+
+  // ---------------- best-effort: record a human-readable location for this
+  // login using IP-based geolocation. Never blocks the login flow and fails
+  // silently if the lookup is unavailable. ----------------
+  function recordLoginLocation(username){
+    fetch('https://ipwho.is/', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+      if(!d || d.success===false) return;
+      var parts = [d.city, d.region, d.country].filter(function(p){ return p; });
+      if(!parts.length) return;
+      var u = state.users.find(function(x){return x.username===username;});
+      if(!u) return;
+      u.lastLoginLocation = parts.join('، ');
+      return persistUsers();
+    }).catch(function(){ /* ignore -- location is best-effort only */ });
   }
 
   function doLogout(){
@@ -962,7 +980,7 @@
     // background even after the page itself has been logged out, so simply
     // clearing localStorage is not enough.
     state.notifiedBundleIds = {};
-    if(oldUser){ oldUser.fcmTokens = []; oldUser.notificationsEnabled = false; }
+    if(oldUser){ oldUser.fcmTokens = []; oldUser.notificationsEnabled = false; oldUser.onlineStatus = 'offline'; }
     try{
       if(messaging && messaging.deleteToken){ messaging.deleteToken().catch(function(){}); }
     }catch(e){}
@@ -1661,6 +1679,8 @@
     if(status==='disabled') return 'badge-disabled';
     if(status==='pending_admin') return 'badge-pending';
     if(status==='rejected_admin') return 'badge-rejected';
+    if(status==='online') return 'badge-enabled';
+    if(status==='offline') return 'badge-disabled';
     return '';
   }
   function statusLabel(status){
@@ -1676,6 +1696,8 @@
     if(status==='disabled') return 'غیر فعاله';
     if(status==='pending_admin') return 'د اډمین تایید ته انتظار';
     if(status==='rejected_admin') return 'د اډمین لخوا رد شوی';
+    if(status==='online') return 'انلاین';
+    if(status==='offline') return 'آفلاین';
     return status;
   }
   function statusBadge(status){
@@ -2184,6 +2206,19 @@
           '</div>'+
           '<button class="btn btn-ghost btn-block" id="resub-cancel" style="margin-top:10px;">لغوه کول</button>'+
         '</div>';
+    }else if(state.modal.type==='user-info'){
+      var iu = state.users.find(function(x){return x.username===state.modal.username;});
+      layer.innerHTML =
+        '<div class="modal-card">'+
+          '<h3>د یوزر معلومات</h3>'+
+          '<div class="field"><label>یوزرنوم</label><div>'+escapeHtml(iu?iu.username:'')+'</div></div>'+
+          '<div class="field"><label>د جوړیدو نیټه</label><div>'+(iu&&iu.createdAt?fmtDateHtml(iu.createdAt):'نامعلومه')+'</div></div>'+
+          '<div class="field"><label>د جوړونکي نوم</label><div>'+escapeHtml(iu&&iu.createdBy?iu.createdBy:'—')+'</div></div>'+
+          '<div class="field"><label>وروستی ننوتل (نیټه او وخت)</label><div>'+(iu&&iu.lastLoginAt?fmtDateHtml(iu.lastLoginAt):'تر اوسه دننه شوی نه دی')+'</div></div>'+
+          '<div class="field"><label>د ننوتلو ځای (لوکیشن)</label><div>'+escapeHtml(iu&&iu.lastLoginLocation?iu.lastLoginLocation:'نامعلومه')+'</div></div>'+
+          '<div class="field"><label>اوسنی حالت</label><div>'+statusBadge(iu&&iu.onlineStatus==='online'?'online':'offline')+'</div></div>'+
+          '<div class="modal-actions"><button class="btn btn-ghost btn-block" id="ui-close">تړل</button></div>'+
+        '</div>';
     }
 
     document.body.appendChild(layer);
@@ -2371,6 +2406,8 @@
         var rc = document.getElementById('resub-comment');
         if(rc){ rc.addEventListener('input', function(){ if(state.modal) state.modal.draftComment = rc.value; }); }
       })();
+    }else if(state.modal.type==='user-info'){
+      document.getElementById('ui-close').onclick = function(){ state.modal=null; render(); };
     }
   }
 
@@ -2450,7 +2487,7 @@
       (isNto ? '<th>مشتري-ادرس</th><th>اړیکې-شمیره</th><th>جوړونکی</th>' : '')+
       '<th>حالت</th>'+(canToggle || (viewerRole==='manager' && isNto)?'<th></th>':'')+(canDelete?'<th></th><th></th>':'')+'</tr></thead><tbody>'+
       pageList.map(function(u){
-        return '<tr><td data-label="یوزر-نوم">'+escapeHtml(u.username)+'</td>'+(canDelete?'<td data-label="پاسورډ"><span dir="ltr">'+escapeHtml(u.password||'')+'</span></td>':'')+
+        return '<tr><td data-label="یوزر-نوم">'+(viewerRole==='admin' ? '<span class="user-info-link" data-info-user="'+escapeHtml(u.username)+'" style="cursor:pointer;color:var(--info);text-decoration:underline;">'+escapeHtml(u.username)+'</span>' : escapeHtml(u.username))+'</td>'+(canDelete?'<td data-label="پاسورډ"><span dir="ltr">'+escapeHtml(u.password||'')+'</span></td>':'')+
           (isNto ? '<td data-label="مشتري-ادرس">'+escapeHtml(u.address||'—')+'</td><td data-label="اړیکې-شمیره">'+escapeHtml(u.contact||'—')+'</td><td data-label="جوړونکی">'+escapeHtml(u.createdBy||'—')+'</td>' : '')+
           '<td data-label="حالت">'+statusBadge(u.status==='enabled'?'enabled':(u.status||'disabled'))+(u.adminReviewComment ? '<div class="small-muted" style="margin-top:5px;">'+escapeHtml(u.adminReviewComment)+'</div>' : '')+'</td>'+
           (canToggle ? '<td>'+ (u.status==='pending_admin' ? '<button class="btn btn-sm btn-ok" data-approve-user="'+u.username+'">تایید</button> <button class="btn btn-sm btn-danger" data-reject-user="'+u.username+'">رد</button>' : '<button class="btn btn-sm '+(u.status==='enabled'?'btn-danger':'btn-ok')+'" data-toggle="'+u.username+'">'+(u.status==='enabled'?'غیر فعالول':'فعالول')+'</button>') +'</td>' : (viewerRole==='manager' && isNto && u.status==='rejected_admin' ? '<td><button class="btn btn-sm btn-info" data-resubmit-user="'+u.username+'">بیا ځلې اډمین ته لیږل</button></td>' : ''))+
@@ -2463,6 +2500,15 @@
       state.userPage[targetRole] = np;
       renderUsersSection(body, targetRole, canToggle, canDelete, viewerRole);
     });
+
+    if(viewerRole==='admin'){
+      Array.prototype.forEach.call(document.querySelectorAll('[data-info-user]'), function(el){
+        el.onclick = function(){
+          state.modal = {type:'user-info', username: el.getAttribute('data-info-user')};
+          render();
+        };
+      });
+    }
 
     if(canToggle){
       Array.prototype.forEach.call(document.querySelectorAll('[data-toggle]'), function(btn){
@@ -3097,6 +3143,8 @@
       if(gv && gv > Number(state.globalLogoutVersion||0)){
         state.globalLogoutVersion = gv;
         if(state.currentUser){
+          var meUser = state.users.find(function(u){return u.username===state.currentUser.username;});
+          if(meUser){ meUser.onlineStatus = 'offline'; persistUsers().catch(function(){}); }
           state.currentUser = null;
           state.section = null;
           state.modal = null;
