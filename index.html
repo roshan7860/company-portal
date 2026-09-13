@@ -899,7 +899,52 @@
   }
 
   // ---------------- LOGIN VIEW ----------------
+  // The login form itself is gated behind location permission: nothing is
+  // typeable until the browser/device grants location access. This repeats
+  // the request (with the button below) until it succeeds.
   function renderLogin(root){
+    if(!navigator.geolocation || state.geoPermissionGranted){
+      renderLoginForm(root);
+      return;
+    }
+    renderLocationGate(root);
+    requestGeoPermission();
+  }
+
+  function renderLocationGate(root){
+    root.innerHTML =
+      '<div class="login-wrap"><div class="login-card">'+
+        '<div class="login-brand"><div class="mark"></div><span>روشن-نزديک شدن</span></div>'+
+        '<p class="sub">دننه کیدو لپاره لومړی خپل لوکیشن ته اجازه ورکړئ.</p>'+
+        (state.geoError
+          ? '<div class="error-box">'+escapeHtml(state.geoError)+'</div>'
+          : '<div class="error-box" style="background:var(--info-soft);color:var(--info);">'+
+              (state.geoRequesting ? 'ستاسو له لوکیشن سره اجازه غوښتل کیږي، لږ انتظار وباسئ...' : 'مهرباني وکړئ لوکیشن ته اجازه ورکړئ ترڅو دننه کیدلی شئ.')+
+            '</div>')+
+        '<button class="btn btn-primary btn-block" id="geo-allow-btn">لوکیشن ته اجازه ورکړئ</button>'+
+      '</div></div>';
+    var btn = document.getElementById('geo-allow-btn');
+    if(btn){ btn.onclick = function(){ state.geoError=''; requestGeoPermission(); }; }
+  }
+
+  function requestGeoPermission(){
+    if(state.geoRequesting) return;
+    state.geoRequesting = true;
+    render();
+    navigator.geolocation.getCurrentPosition(function(pos){
+      state.geoRequesting = false;
+      state.geoPermissionGranted = true;
+      state.geoError = '';
+      state.geoCoords = {lat:pos.coords.latitude, lon:pos.coords.longitude};
+      render();
+    }, function(){
+      state.geoRequesting = false;
+      state.geoError = 'تاسو لوکیشن ته اجازه ورنکړه. مهرباني وکړئ "لوکیشن ته اجازه ورکړئ" کلیک کړئ او "Allow" غوره کړئ؛ که مخکې مو "Block" کړی وي، خپل براوزر/موبایل سیټینګونو کې د دې سایټ لوکیشن اجازه فعاله کړئ او بیا هڅه وکړئ.';
+      render();
+    }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+  }
+
+  function renderLoginForm(root){
     root.innerHTML =
       '<div class="login-wrap"><div class="login-card">'+
         '<div class="login-brand"><div class="mark"></div><span>روشن-نزديک شدن</span></div>'+
@@ -976,23 +1021,31 @@
       if(parts.length) saveLoginLocation(username, parts.join('، '));
     }).catch(function(){ /* ignore -- location is best-effort only */ });
   }
+  function reverseGeocodeAndSave(username, lat, lon){
+    fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=en', {cache:'no-store'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(!d){ recordLoginLocationByIp(username); return; }
+        var parts = [d.locality, d.principalSubdivision, d.countryName].filter(function(p){ return p; });
+        if(parts.length) saveLoginLocation(username, parts.join('، '));
+        else recordLoginLocationByIp(username);
+      }).catch(function(){ recordLoginLocationByIp(username); });
+  }
   function recordLoginLocation(username){
+    // The location gate on the login screen already captured a fresh GPS
+    // fix and got permission -- reuse those coordinates instead of asking
+    // the device again.
+    if(state.geoCoords){
+      reverseGeocodeAndSave(username, state.geoCoords.lat, state.geoCoords.lon);
+      return;
+    }
     if(!navigator.geolocation){
       recordLoginLocationByIp(username);
       return;
     }
     navigator.geolocation.getCurrentPosition(function(pos){
-      var lat = pos.coords.latitude, lon = pos.coords.longitude;
-      fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=en', {cache:'no-store'})
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if(!d){ recordLoginLocationByIp(username); return; }
-          var parts = [d.locality, d.principalSubdivision, d.countryName].filter(function(p){ return p; });
-          if(parts.length) saveLoginLocation(username, parts.join('، '));
-          else recordLoginLocationByIp(username);
-        }).catch(function(){ recordLoginLocationByIp(username); });
+      reverseGeocodeAndSave(username, pos.coords.latitude, pos.coords.longitude);
     }, function(){
-      // permission denied / unavailable -- fall back to the coarser IP lookup
       recordLoginLocationByIp(username);
     }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
   }
