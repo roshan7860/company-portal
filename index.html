@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.8">
+<meta name="app-build-version" content="0.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -428,6 +428,7 @@
     currentUser:null,
     users:[],
     bundles:[],
+    bundleHistory:[],
     complaints:[],
     rolls:[],
     managerSales:{}, // { managerUsername: {total, count} } -- persisted independently of the bundles table
@@ -443,6 +444,7 @@
     unsubs:null,
     modal:null, // {type:'process'|'resubmit', bundleId, previousStatus}
     mySessionToken:null, // in-memory only; used for single-session enforcement for all roles
+    myForceLogoutBaseline:0, // in-memory only; the forceLogoutAt value already accounted for by this session
     knownBundleIds:null,  // sentinel: null = not yet initialized, true = initialized
     notifiedBundleIds:{}, // bundle.id -> true once this client has already rung/notified for it (avoids duplicate rings)
     assignTimer:null,     // pending setTimeout handle, see scheduleAssignWindowRefresh()
@@ -606,6 +608,7 @@
     }
     state.currentUser = {username:u.username, role:u.role};
     state.mySessionToken = saved.sessionToken || null;
+    state.myForceLogoutBaseline = u.forceLogoutAt || 0;
     state.section = MENUS[u.role][0].key;
   }
 
@@ -760,6 +763,7 @@
     return Promise.all([
       ensureSeed(),
       loadJSON('bundles', []).then(function(v){ state.bundles = v; }),
+      loadJSON('bundleHistory', []).then(function(v){ state.bundleHistory = v; }),
       loadJSON('complaints', []).then(function(v){ state.complaints = v; }),
       loadJSON('rolls', []).then(function(v){ state.rolls = v; }),
       loadJSON('settings', {commissionRate:3}).then(function(v){
@@ -823,6 +827,7 @@
       {key:'report', label:'راپور-مدير'},
       {key:'nto_report', label:'راپور-مشتري'},
       {key:'manager_sales', label:'مديرانو فروشات'},
+      {key:'search', label:'لټون'},
       {key:'rolls', label:'پيغام استول'},
       {key:'complaints', label:'شکایتونه'}
     ],
@@ -1018,6 +1023,7 @@
       state.mySessionToken = tok;
       found.lastLoginAt = Date.now();
       found.onlineStatus = 'online';
+      state.myForceLogoutBaseline = found.forceLogoutAt || 0;
       persistUsers();
       recordLoginLocation(found.username);
     }
@@ -1090,6 +1096,19 @@
     state.mySessionToken = null;
     clearSavedSession();
     render();
+  }
+
+  // ---------------- admin: force a specific user to log out immediately.
+  // The target's browser is listening in real time (see the 'users'
+  // onSnapshot handler below) and will detect forceLogoutAt, sign itself
+  // out, and do a full page reload -- so the next time that user logs in
+  // they're guaranteed to be running whatever is currently deployed. ----------------
+  function forceLogoutUser(username){
+    var u = state.users.find(function(x){return x.username===username;});
+    if(!u) return Promise.resolve();
+    u.forceLogoutAt = Date.now();
+    u.onlineStatus = 'offline';
+    return persistUsers();
   }
 
   // ---------------- BLOCKED VIEW ----------------
@@ -1277,7 +1296,7 @@
   }
 
   function sectionTitle(key){
-    var map = {bundle:'نوى بنډل-استول', deactivate:'بنډل-غيري فعالول', managers:'مدير-حسابونه', ntos:'مشتري-اضافه کول', sales:'بنډلونو-حالت', report:'فروشاتو -راپور', nto_report:'مشتري-راپور', manager_sales:'مديرانو فروشات', rolls:'پيغام-استول', complaints:'راليږل شوي شکایتونه', commission:'کميشن ټاکنه'};
+    var map = {bundle:'نوى بنډل-استول', deactivate:'بنډل-غيري فعالول', managers:'مدير-حسابونه', ntos:'مشتري-اضافه کول', sales:'بنډلونو-حالت', report:'فروشاتو -راپور', nto_report:'مشتري-راپور', manager_sales:'مديرانو فروشات', search:'لټون', rolls:'پيغام-استول', complaints:'راليږل شوي شکایتونه', commission:'کميشن ټاکنه'};
     return map[key] || '';
   }
 
@@ -1344,6 +1363,7 @@
     if(state.section==='report') return renderReportSection(body, role, headerRow);
     if(state.section==='nto_report' && (role==='admin'||role==='manager')) return renderNtoReportSection(body, headerRow, role);
     if(state.section==='manager_sales' && role==='admin') return renderManagerSalesSection(body, headerRow, role);
+    if(state.section==='search' && role==='admin') return renderSearchSection(body, headerRow);
     if(state.section==='commission' && role==='admin') return renderCommissionSection(body, headerRow);
     if(state.section==='rolls' && role==='admin'){ renderRollsSection(body); addAdminPageExport(headerRow, 'rolls'); return; }
     if(state.section==='complaints') { renderComplaintsSection(body, role); if(role==='admin') addAdminPageExport(headerRow, 'complaints'); return; }
@@ -1391,12 +1411,28 @@
         comment:null, actionedBy:null, actionedAt:null, processingBy:null,
         ntoSeen: true
       };
-      state.bundles.unshift(entry);
-      state.bundleDraft = {field1:'', field2:''};
-      persistBundles().then(function(){
+      var bundlesRef = db.collection('appdata').doc('bundles');
+      var historyRef = db.collection('appdata').doc('bundleHistory');
+      db.runTransaction(function(tx){
+        return Promise.all([tx.get(bundlesRef), tx.get(historyRef)]).then(function(reads){
+          var bs=reads[0], hs=reads[1];
+          var list=(bs.exists&&Array.isArray(bs.data().list))?bs.data().list.slice():[];
+          var history=(hs.exists&&Array.isArray(hs.data().list))?hs.data().list.slice():[];
+          list.unshift(entry);
+          history.push({id:uid(),bundleId:entry.id,field1:entry.field1,field2:entry.field2,ntoUsername:entry.ntoUsername,event:'submitted',status:'pending',comment:'',actionedBy:'',createdAt:entry.createdAt});
+          tx.set(bundlesRef,{list:list},{merge:true});
+          tx.set(historyRef,{list:history},{merge:true});
+        });
+      }).then(function(){
+        state.bundles.unshift(entry);
+        state.bundleHistory.push({id:uid(),bundleId:entry.id,field1:entry.field1,field2:entry.field2,ntoUsername:entry.ntoUsername,event:'submitted',status:'pending',comment:'',actionedBy:'',createdAt:entry.createdAt});
+        state.bundleDraft = {field1:'', field2:''};
         showToast('بنډل واستول شو، اوس د تمې په حالت کې دی.');
         state.section = 'sales';
         renderDashboard(document.getElementById('app'));
+      }).catch(function(err){
+        console.error(err);
+        showToast('د بنډل د استولو پر مهال ستونزه وشوه؛ بنډل بیا هڅه کړئ.');
       });
     };
 
@@ -1447,13 +1483,26 @@
         comment:null, actionedBy:null, actionedAt:null, processingBy:null,
         ntoSeen: true
       };
-      state.bundles.unshift(entry);
-      state.deactivateDraft = {field1:''};
-      persistBundles().then(function(){
+      var bundlesRef = db.collection('appdata').doc('bundles');
+      var historyRef = db.collection('appdata').doc('bundleHistory');
+      db.runTransaction(function(tx){
+        return Promise.all([tx.get(bundlesRef),tx.get(historyRef)]).then(function(reads){
+          var bs=reads[0],hs=reads[1];
+          var list=(bs.exists&&Array.isArray(bs.data().list))?bs.data().list.slice():[];
+          var history=(hs.exists&&Array.isArray(hs.data().list))?hs.data().list.slice():[];
+          list.unshift(entry);
+          history.push({id:uid(),bundleId:entry.id,field1:entry.field1,field2:entry.field2,ntoUsername:entry.ntoUsername,event:'submitted',status:'pending',comment:'',actionedBy:'',createdAt:entry.createdAt});
+          tx.set(bundlesRef,{list:list},{merge:true});
+          tx.set(historyRef,{list:history},{merge:true});
+        });
+      }).then(function(){
+        state.bundles.unshift(entry);
+        state.bundleHistory.push({id:uid(),bundleId:entry.id,field1:entry.field1,field2:entry.field2,ntoUsername:entry.ntoUsername,event:'submitted',status:'pending',comment:'',actionedBy:'',createdAt:entry.createdAt});
+        state.deactivateDraft = {field1:''};
         showToast('غوښتنه واستول شوه، اوس د تمې په حالت کې ده.');
         state.section = 'sales';
         renderDashboard(document.getElementById('app'));
-      });
+      }).catch(function(err){console.error(err);showToast('د غوښتنې د استولو پر مهال ستونزه وشوه؛ بیا هڅه وکړئ.');});
     };
 
     var list = document.getElementById('dz-list');
@@ -1797,6 +1846,10 @@
   function statusBadge(status){
     return '<span class="badge '+badgeClass(status)+'">'+statusLabel(status)+'</span>';
   }
+  function onlineDot(onlineStatus){
+    var isOnline = onlineStatus==='online';
+    return '<span title="'+(isOnline?'انلاین':'آفلاین')+'" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(isOnline?'#2E7D5B':'#B3432B')+';"></span>';
+  }
 
   // ---------------- MANAGER ASSIGNMENT WINDOW (problem #4) ----------------
   // The manager who created a customer's account is that customer's "own"
@@ -1909,135 +1962,66 @@
 
   function submitProcessDecision(decision, overrideComment){
     if(!state.modal) return;
-    var commentEl = document.getElementById('proc-comment');
-    var comment = (overrideComment!=null) ? overrideComment : (commentEl ? commentEl.value.trim() : '');
-    if(!comment){ showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.'); return; }
-    var decisionBtns = ['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
-    decisionBtns.forEach(function(x){ if(x){x.disabled=true; x.style.opacity='.6';} });
-
-    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
-    if(!b) return;
-
-    // IMPORTANT: determine the manager BEFORE clearing processingBy/action fields.
-    // If a manager opened the bundle, processingBy is the safest source of the
-    // manager identity. Admin approvals are assigned to the customer's manager.
-    var approvedManager = null;
+    var commentEl=document.getElementById('proc-comment');
+    var comment=(overrideComment!=null)?overrideComment:(commentEl?commentEl.value.trim():'');
+    if(!comment){showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.');return;}
+    var decisionBtns=['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
+    decisionBtns.forEach(function(x){if(x){x.disabled=true;x.style.opacity='.6';}});
+    var bundleId=state.modal.bundleId;
+    var localB=state.bundles.find(function(x){return x.id===bundleId;});
+    if(!localB)return;
+    var approvedManager=null;
     if(decision==='approved'){
-      if(b.processingBy){
-        var processingMgr = state.users.find(function(u){
-          return u.username===b.processingBy && u.role==='manager';
-        });
-        if(processingMgr) approvedManager = processingMgr.username;
-      }
-      if(!approvedManager && b.actionedBy){
-        var actionMgr = state.users.find(function(u){
-          return u.username===b.actionedBy && u.role==='manager';
-        });
-        if(actionMgr) approvedManager = actionMgr.username;
-      }
-      if(!approvedManager) approvedManager = findAssignedManager(b.ntoUsername);
-      if(!approvedManager && state.currentUser.role==='manager') approvedManager = state.currentUser.username;
-      if(!approvedManager){
-        showToast('د دې مشتری لپاره مدیر پیدا نه شو؛ فروشات ثبت نه شول.');
-        return;
-      }
+      if(localB.processingBy && state.users.some(function(u){return u.username===localB.processingBy&&u.role==='manager';})) approvedManager=localB.processingBy;
+      if(!approvedManager&&localB.actionedBy&&state.users.some(function(u){return u.username===localB.actionedBy&&u.role==='manager';})) approvedManager=localB.actionedBy;
+      if(!approvedManager)approvedManager=findAssignedManager(localB.ntoUsername);
+      if(!approvedManager&&state.currentUser.role==='manager')approvedManager=state.currentUser.username;
+      if(!approvedManager){showToast('د دې مشتری لپاره مدیر پیدا نه شو؛ فروشات ثبت نه شول.');return;}
     }
-
-    b.status = decision;
-    b.comment = comment;
-    b.actionedBy = state.currentUser.username;
-    b.actionedAt = Date.now();
-    b.processingBy = null;
-    b.prevStatusBeforeProcess = null;
-    b.ntoSeen = false;
-
-    // Update the screen immediately. Do not wait for Firestore before closing
-    // the modal: this makes Approve/Reject feel instant like a mobile app.
-    var finishedMessage = decision==='approved' ? 'بنډل فعاله شو.' : 'بنډل رد شو.';
-    state.modal = null;
-    render();
-
-    if(decision!=='approved'){
-      persistBundles().then(function(){
-        showToast('بنډل رد شو.');
-      }).catch(function(err){
-        console.error(err);
-        showToast('د بنډل د ثبت پر مهال تېروتنه وشوه.');
-      });
-      return;
-    }
-
-    var amount = extractNumber(comment);
-    var ntoUser = b.ntoUsername;
-    var totalsRef = db.collection('appdata').doc('salesTotals');
-
-    // Optimistically update the visible sales counters before the network
-    // transaction completes. The transaction below remains the source of truth.
-    if(!state.managerSales[approvedManager]) state.managerSales[approvedManager] = {total:0,count:0};
-    state.managerSales[approvedManager] = {
-      total:(Number(state.managerSales[approvedManager].total)||0) + amount,
-      count:(Number(state.managerSales[approvedManager].count)||0) + 1
-    };
-    if(ntoUser){
-      if(!state.ntoSales[ntoUser]) state.ntoSales[ntoUser] = {total:0,count:0};
-      state.ntoSales[ntoUser] = {
-        total:(Number(state.ntoSales[ntoUser].total)||0) + amount,
-        count:(Number(state.ntoSales[ntoUser].count)||0) + 1
-      };
-    }
-    showToast('بنډل فعاله شو او فروشات ثبتېږي...');
-    var bundlesRef = db.collection('appdata').doc('bundles');
-    var bundleList = state.bundles.slice();
-
-    // Save the approval and both sales reports in one Firestore transaction.
-    // Do NOT use dotted field paths such as managerSales.<username> because a
-    // username can contain characters that Firestore interprets as path syntax.
-    // Reading the whole maps and writing them back also guarantees that the
-    // number entered in the comment is actually persisted for both accounts.
+    var actionedAt=Date.now(), amount=extractNumber(comment), ntoUser=localB.ntoUsername;
+    var bundlesRef=db.collection('appdata').doc('bundles');
+    var totalsRef=db.collection('appdata').doc('salesTotals');
+    var historyRef=db.collection('appdata').doc('bundleHistory');
+    showToast(decision==='approved'?'بنډل فعاله کېږي...':'بنډل رد کېږي...');
     db.runTransaction(function(tx){
-      return Promise.all([tx.get(totalsRef), tx.get(bundlesRef)]).then(function(reads){
-        var totalsSnap = reads[0];
-        var bundlesSnap = reads[1];
-        var totals = totalsSnap.exists ? (totalsSnap.data()||{}) : {};
-        var managerSales = totals.managerSales || {};
-        var ntoSales = totals.ntoSales || {};
-
-        if(!managerSales[approvedManager]) managerSales[approvedManager] = {total:0,count:0};
-        managerSales[approvedManager] = {
-          total:(Number(managerSales[approvedManager].total)||0) + amount,
-          count:(Number(managerSales[approvedManager].count)||0) + 1
-        };
-
-        if(ntoUser){
-          if(!ntoSales[ntoUser]) ntoSales[ntoUser] = {total:0,count:0};
-          ntoSales[ntoUser] = {
-            total:(Number(ntoSales[ntoUser].total)||0) + amount,
-            count:(Number(ntoSales[ntoUser].count)||0) + 1
-          };
+      return Promise.all([tx.get(bundlesRef),tx.get(totalsRef),tx.get(historyRef)]).then(function(reads){
+        var bs=reads[0],ts=reads[1],hs=reads[2];
+        var list=(bs.exists&&Array.isArray(bs.data().list))?bs.data().list.slice():[];
+        var totals=ts.exists?(ts.data()||{}):{};
+        var history=(hs.exists&&Array.isArray(hs.data().list))?hs.data().list.slice():[];
+        var idx=list.findIndex(function(x){return x.id===bundleId;});
+        if(idx<0)throw new Error('bundle-not-found');
+        var current=list[idx];
+        if(current.status!=='in_process' || (current.processingBy && current.processingBy!==state.currentUser.username && state.currentUser.role!=='admin')) throw new Error('bundle-already-changed');
+        var ledger=totals.salesLedger||{};
+        if(decision==='approved'){
+          if(!ledger[bundleId]){
+            var mt=totals.managerSales||{},nt=totals.ntoSales||{};
+            if(!mt[approvedManager])mt[approvedManager]={total:0,count:0};
+            mt[approvedManager]={total:(Number(mt[approvedManager].total)||0)+amount,count:(Number(mt[approvedManager].count)||0)+1};
+            if(ntoUser){if(!nt[ntoUser])nt[ntoUser]={total:0,count:0};nt[ntoUser]={total:(Number(nt[ntoUser].total)||0)+amount,count:(Number(nt[ntoUser].count)||0)+1};}
+            ledger[bundleId]={manager:approvedManager,customer:ntoUser,amount:amount,approvedAt:actionedAt};
+            totals.managerSales=mt;totals.ntoSales=nt;totals.salesLedger=ledger;
+          }
         }
-
-        tx.set(totalsRef, {
-          managerSales: managerSales,
-          ntoSales: ntoSales,
-          lastApprovalAt: Date.now()
-        }, {merge:true});
-        tx.set(bundlesRef, {list: bundleList}, {merge:true});
+        current.status=decision;current.comment=comment;current.actionedBy=state.currentUser.username;current.actionedAt=actionedAt;current.processingBy=null;current.prevStatusBeforeProcess=null;current.ntoSeen=false;
+        list[idx]=current;
+        history.push({id:uid(),bundleId:bundleId,field1:current.field1,field2:current.field2,ntoUsername:current.ntoUsername,event:decision==='approved'?'approved':'rejected',status:decision,comment:comment,actionedBy:state.currentUser.username,createdAt:actionedAt});
+        tx.set(bundlesRef,{list:list},{merge:true});
+        tx.set(historyRef,{list:history},{merge:true});
+        tx.set(totalsRef,{managerSales:totals.managerSales||{},ntoSales:totals.ntoSales||{},salesLedger:totals.salesLedger||{},lastApprovalAt:actionedAt},{merge:true});
+        return {updated:current,ledger:totals.salesLedger||{},managerSales:totals.managerSales||{},ntoSales:totals.ntoSales||{},historyEvent:history[history.length-1]};
       });
-    }).then(function(){
-      showToast('بنډل فعاله شو او فروشات د مشتری او مدیر دواړو حسابونو ته جمع شول.');
+    }).then(function(result){
+      var idx=state.bundles.findIndex(function(x){return x.id===bundleId;});
+      if(idx>=0)state.bundles[idx]=result.updated;
+      state.managerSales=result.managerSales;state.ntoSales=result.ntoSales;
+      state.bundleHistory.push(result.historyEvent);
+      state.modal=null;render();
+      showToast(decision==='approved'?'بنډل فعاله شو او فروشات ثبت شول.':'بنډل رد شو.');
     }).catch(function(err){
-      console.error(err);
-      // The server transaction is authoritative. Reload the persisted totals
-      // if the background write fails, without reopening the modal.
-      return totalsRef.get().then(function(snap){
-        var d = snap.exists ? (snap.data()||{}) : {};
-        state.managerSales = d.managerSales || {};
-        state.ntoSales = d.ntoSales || {};
-        render();
-        showToast('د فعالولو یا فروشاتو د ثبت پر مهال تېروتنه وشوه. بیا هڅه وکړئ.');
-      }).catch(function(){
-        showToast('د فعالولو یا فروشاتو د ثبت پر مهال تېروتنه وشوه. بیا هڅه وکړئ.');
-      });
+      console.error(err);state.modal=null;render();
+      showToast(err&&err.message==='bundle-already-changed'?'دا بنډل مخکې بل حالت ته بدل شوی دی.':'د بنډل د ثبت پر مهال تېروتنه وشوه؛ بیا هڅه وکړئ.');
     });
   }
 
@@ -2078,18 +2062,19 @@
     if(!comment){ showToast('مهرباني وکړئ کمینټ ولیکئ.'); return; }
     var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
     if(!b) return;
-    b.status = 'resubmit';
-    b.comment = comment;
-    b.actionedBy = null;
-    b.actionedAt = null;
-    b.processingBy = null;
-    b.ntoSeen = true;
-    b.waitStartAt = Date.now();
-    persistBundles().then(function(){
-      showToast('بنډل بیا وړاندې شو.');
-      state.modal = null;
-      render();
-    });
+    var now=Date.now(), bundleId=b.id, bundlesRef=db.collection('appdata').doc('bundles'), historyRef=db.collection('appdata').doc('bundleHistory');
+    db.runTransaction(function(tx){
+      return Promise.all([tx.get(bundlesRef),tx.get(historyRef)]).then(function(reads){
+        var bs=reads[0],hs=reads[1];
+        var list=(bs.exists&&Array.isArray(bs.data().list))?bs.data().list.slice():[];
+        var history=(hs.exists&&Array.isArray(hs.data().list))?hs.data().list.slice():[];
+        var idx=list.findIndex(function(x){return x.id===bundleId;});
+        if(idx<0)throw new Error('bundle-not-found');
+        var cur=list[idx];cur.status='resubmit';cur.comment=comment;cur.actionedBy=null;cur.actionedAt=null;cur.processingBy=null;cur.ntoSeen=true;cur.waitStartAt=now;list[idx]=cur;
+        history.push({id:uid(),bundleId:bundleId,field1:cur.field1,field2:cur.field2,ntoUsername:cur.ntoUsername,event:'resubmitted',status:'resubmit',comment:comment,actionedBy:b.ntoUsername,createdAt:now});
+        tx.set(bundlesRef,{list:list},{merge:true});tx.set(historyRef,{list:history},{merge:true});return {updated:cur,event:history[history.length-1]};
+      });
+    }).then(function(r){b=r.updated;state.bundleHistory.push(r.event);showToast('بنډل بیا وړاندې شو.');state.modal=null;render();}).catch(function(){showToast('د بیا استولو پر مهال ستونزه وشوه؛ بیا هڅه وکړئ.');});
   }
 
   // ---------------- account modals (logout / desktop-view / change password) ----------------
@@ -2302,6 +2287,7 @@
         '</div>';
     }else if(state.modal.type==='user-info'){
       var iu = state.users.find(function(x){return x.username===state.modal.username;});
+      var iuIsAdminView = state.modal.viewerRole==='admin';
       layer.innerHTML =
         '<div class="modal-card">'+
           '<h3>د یوزر معلومات</h3>'+
@@ -2309,8 +2295,9 @@
           '<div class="field"><label>د جوړیدو نیټه</label><div>'+(iu&&iu.createdAt?fmtDateHtml(iu.createdAt):'نامعلومه')+'</div></div>'+
           '<div class="field"><label>د جوړونکي نوم</label><div>'+escapeHtml(iu&&iu.createdBy?iu.createdBy:'—')+'</div></div>'+
           '<div class="field"><label>وروستی ننوتل (نیټه او وخت)</label><div>'+(iu&&iu.lastLoginAt?fmtDateHtml(iu.lastLoginAt):'تر اوسه دننه شوی نه دی')+'</div></div>'+
-          '<div class="field"><label>د ننوتلو ځای (لوکیشن)</label><div>'+escapeHtml(iu&&iu.lastLoginLocation?iu.lastLoginLocation:'نامعلومه')+'</div></div>'+
+          (iuIsAdminView ? '<div class="field"><label>د ننوتلو ځای (لوکیشن)</label><div>'+escapeHtml(iu&&iu.lastLoginLocation?iu.lastLoginLocation:'نامعلومه')+'</div></div>' : '')+
           '<div class="field"><label>اوسنی حالت</label><div>'+statusBadge(iu&&iu.onlineStatus==='online'?'online':'offline')+'</div></div>'+
+          (iuIsAdminView ? '<div class="modal-actions"><button class="btn btn-danger btn-block" id="ui-force-logout">دې یوزر لاگ-اوټ کړئ</button></div>' : '')+
           '<div class="modal-actions"><button class="btn btn-ghost btn-block" id="ui-close">تړل</button></div>'+
         '</div>';
     }
@@ -2502,6 +2489,19 @@
       })();
     }else if(state.modal.type==='user-info'){
       document.getElementById('ui-close').onclick = function(){ state.modal=null; render(); };
+      var uiForceLogoutBtn = document.getElementById('ui-force-logout');
+      if(uiForceLogoutBtn){
+        uiForceLogoutBtn.onclick = function(){
+          var targetUsername = state.modal.username;
+          var ok = window.confirm(targetUsername+' به سمدلاسه له سیسټم څخه ووځي او د بیا داخلیدو پرمهال به ورته وروستي بدلونونه پلي شي. ته یقین لرئ؟');
+          if(!ok) return;
+          forceLogoutUser(targetUsername).then(function(){
+            showToast(targetUsername+' لاگ-اوټ شو.');
+            state.modal = null;
+            render();
+          });
+        };
+      }
     }
   }
 
@@ -2577,15 +2577,20 @@
     state.userPage[targetRole] = page;
     var pageList = list.slice(page*PAGE_SIZE, (page+1)*PAGE_SIZE);
 
-    listEl.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>یوزر-نوم</th>'+(canDelete?'<th>پاسورډ</th>':'')+
+    var canSeeOnline = canDelete || (viewerRole==='manager' && isNto);
+    var canSeeInfo = viewerRole==='admin' || (viewerRole==='manager' && isNto);
+
+    listEl.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>یوزر-نوم</th>'+(canDelete?'<th>پاسورډ</th>':'')+(canSeeOnline?'<th>آنلاین حالت</th>':'')+
       (isNto ? '<th>مشتري-ادرس</th><th>اړیکې-شمیره</th><th>جوړونکی</th>' : '')+
-      '<th>حالت</th>'+(canToggle || (viewerRole==='manager' && isNto)?'<th></th>':'')+(canDelete?'<th></th><th></th>':'')+'</tr></thead><tbody>'+
+      '<th>حالت</th>'+(canToggle || (viewerRole==='manager' && isNto)?'<th></th>':'')+(canDelete?'<th></th>':'')+(canSeeInfo?'<th></th>':'')+(canDelete?'<th></th>':'')+'</tr></thead><tbody>'+
       pageList.map(function(u){
-        return '<tr><td data-label="یوزر-نوم">'+(viewerRole==='admin' ? '<span class="user-info-link" data-info-user="'+escapeHtml(u.username)+'" style="cursor:pointer;color:var(--info);text-decoration:underline;">'+escapeHtml(u.username)+'</span>' : escapeHtml(u.username))+'</td>'+(canDelete?'<td data-label="پاسورډ"><span dir="ltr">'+escapeHtml(u.password||'')+'</span></td>':'')+
+        return '<tr><td data-label="یوزر-نوم">'+(viewerRole==='admin' ? '<span class="user-info-link" data-info-user="'+escapeHtml(u.username)+'" style="cursor:pointer;color:var(--info);text-decoration:underline;">'+escapeHtml(u.username)+'</span>' : escapeHtml(u.username))+'</td>'+(canDelete?'<td data-label="پاسورډ"><span dir="ltr">'+escapeHtml(u.password||'')+'</span></td>':'')+(canSeeOnline?'<td data-label="آنلاین حالت">'+onlineDot(u.onlineStatus)+'</td>':'')+
           (isNto ? '<td data-label="مشتري-ادرس">'+escapeHtml(u.address||'—')+'</td><td data-label="اړیکې-شمیره">'+escapeHtml(u.contact||'—')+'</td><td data-label="جوړونکی">'+escapeHtml(u.createdBy||'—')+'</td>' : '')+
           '<td data-label="حالت">'+statusBadge(u.status==='enabled'?'enabled':(u.status||'disabled'))+(u.adminReviewComment ? '<div class="small-muted" style="margin-top:5px;">'+escapeHtml(u.adminReviewComment)+'</div>' : '')+'</td>'+
           (canToggle ? '<td>'+ (u.status==='pending_admin' ? '<button class="btn btn-sm btn-ok" data-approve-user="'+u.username+'">تایید</button> <button class="btn btn-sm btn-danger" data-reject-user="'+u.username+'">رد</button>' : '<button class="btn btn-sm '+(u.status==='enabled'?'btn-danger':'btn-ok')+'" data-toggle="'+u.username+'">'+(u.status==='enabled'?'غیر فعالول':'فعالول')+'</button>') +'</td>' : (viewerRole==='manager' && isNto && u.status==='rejected_admin' ? '<td><button class="btn btn-sm btn-info" data-resubmit-user="'+u.username+'">بیا ځلې اډمین ته لیږل</button></td>' : ''))+
-          (canDelete ? '<td><button class="icon-btn-sm" data-edit-user="'+u.username+'" title="ایډیټ">&#9998;</button></td><td><button class="icon-btn-sm" data-delete-user="'+u.username+'" title="ډیلیټ">&#128465;</button></td>' : '')+
+          (canDelete ? '<td><button class="icon-btn-sm" data-edit-user="'+u.username+'" title="ایډیټ">&#9998;</button></td>' : '')+
+          (canSeeInfo ? '<td><button class="icon-btn-sm" data-info-user="'+u.username+'" title="معلومات">&#128065;</button></td>' : '')+
+          (canDelete ? '<td><button class="icon-btn-sm" data-delete-user="'+u.username+'" title="ډیلیټ">&#128465;</button></td>' : '')+
         '</tr>';
       }).join('')+
     '</tbody></table></div>';
@@ -2595,10 +2600,10 @@
       renderUsersSection(body, targetRole, canToggle, canDelete, viewerRole);
     });
 
-    if(viewerRole==='admin'){
+    if(canSeeInfo){
       Array.prototype.forEach.call(document.querySelectorAll('[data-info-user]'), function(el){
         el.onclick = function(){
-          state.modal = {type:'user-info', username: el.getAttribute('data-info-user')};
+          state.modal = {type:'user-info', username: el.getAttribute('data-info-user'), viewerRole: viewerRole};
           render();
         };
       });
@@ -2717,6 +2722,23 @@
       if(!state.otherManagerSalesResetAt)state.otherManagerSalesResetAt={};state.otherManagerSalesResetAt[mgr]=Date.now();
       db.collection('appdata').doc('salesTotals').set({otherManagerSalesResetAt:state.otherManagerSalesResetAt},{merge:true}).then(function(){showToast('د '+mgr+' د مدیرانو فروشات راپور صفر شو.');render();}).catch(function(){showToast('د راپور د ریسیټ پر مهال تېروتنه وشوه.');});
     };});
+  }
+
+  // ---------------- ADMIN: SEARCH BUNDLE HISTORY ----------------
+  function renderSearchSection(body, headerRow){
+    var q=state.bundleSearch||'';
+    if(headerRow) headerRow.innerHTML='<div><h2>لټون</h2><p>د شمیرې له لارې د بنډلونو بشپړ تاریخچه.</p></div>';
+    body.innerHTML='<div class="card"><div class="row"><div class="field"><label>شمیره</label><input id="history-search" type="text" inputmode="numeric" placeholder="شمیره ولیکئ..." value="'+escapeHtml(q)+'"></div><button class="btn btn-gold" id="history-search-btn">لټون</button></div></div><div id="history-results"></div>';
+    var inp=document.getElementById('history-search');
+    inp.addEventListener('input',function(){inp.value=normalizeDigits(inp.value).replace(/[^0-9]/g,'');});
+    document.getElementById('history-search-btn').onclick=function(){
+      var number=normalizeDigits(inp.value.trim()).replace(/[^0-9]/g,'');state.bundleSearch=number;
+      var rows=state.bundleHistory.filter(function(h){return normalizeDigits(h.field1||'')===number;}).slice().sort(function(a,b){return (Number(a.createdAt)||0)-(Number(b.createdAt)||0);});
+      var out=document.getElementById('history-results');
+      if(!number){out.innerHTML='<div class="card"><div class="empty-state">لومړی شمیره ولیکئ.</div></div>';return;}
+      if(!rows.length){out.innerHTML='<div class="card"><div class="empty-state">د دې شمیرې لپاره هیڅ تاریخچه ونه موندل شوه.</div></div>';return;}
+      out.innerHTML='<div class="card"><h4>د '+escapeHtml(number)+' بشپړه تاریخچه</h4><div style="overflow-x:auto;"><table><thead><tr><th>د بنډل نوم</th><th>مشتري</th><th>عمل/حالت</th><th>کمینټ</th><th>د عمل کوونکي یوزر</th><th>نیټه او وخت</th></tr></thead><tbody>'+rows.map(function(h){var ev=h.event==='submitted'?'بنډل واستول شو':(h.event==='resubmitted'?'بیا ځلې واستول شو':statusLabel(h.status));return '<tr><td data-label="د بنډل نوم">'+escapeHtml(h.field2||'')+'</td><td data-label="مشتري">'+escapeHtml(h.ntoUsername||'')+'</td><td data-label="عمل/حالت">'+escapeHtml(ev)+'</td><td data-label="کمینټ">'+escapeHtml(h.comment||'—')+'</td><td data-label="د عمل کوونکي یوزر">'+escapeHtml(h.actionedBy||h.ntoUsername||'—')+'</td><td data-label="نیټه او وخت">'+fmtDateHtml(h.createdAt)+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+    };
   }
 
   // ---------------- ADMIN: COMMISSION SETTING ----------------
@@ -3185,6 +3207,20 @@
         state.loadError = false;
         if(state.currentUser && (state.currentUser.role==='admin' || state.currentUser.role==='manager' || state.currentUser.role==='nto')){
           var liveUser = state.users.find(function(u){return u.username===state.currentUser.username;});
+          if(liveUser && liveUser.forceLogoutAt && liveUser.forceLogoutAt > (state.myForceLogoutBaseline||0)){
+            // An admin force-logged this user out. Sign out and force a full
+            // page reload -- same treatment as a new deployed version -- so
+            // this user is guaranteed to come back with the latest code.
+            state.currentUser=null;
+            state.section=null;
+            state.modal=null;
+            state.userMenuOpen=false;
+            state.mySessionToken=null;
+            clearSavedSession();
+            showToast('اډمین تاسو لاگ-اوټ کړئ. نوي بدلونونه به اوس پلي شي.');
+            setTimeout(function(){ window.location.reload(); }, 700);
+            return;
+          }
           if(!liveUser || liveUser.status==='disabled' || ((liveUser.role==='nto') && (liveUser.status==='pending_admin'||liveUser.status==='rejected_admin')) || (liveUser.sessionToken && state.mySessionToken && liveUser.sessionToken!==state.mySessionToken)){
             state.currentUser=null;
             state.section=null;
@@ -3206,6 +3242,9 @@
         state.bundles = newList;
         render();
       }
+    }));
+    state.unsubs.push(db.collection('appdata').doc('bundleHistory').onSnapshot(function(snap){
+      if(snap.exists && snap.data().list){ state.bundleHistory=snap.data().list; }
     }));
     state.unsubs.push(db.collection('appdata').doc('complaints').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){ state.complaints = snap.data().list; render(); }
