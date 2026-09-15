@@ -216,6 +216,23 @@
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;}
   .card h4{margin:0 0 16px 0;font-size:15px;}
+
+  /* ---------- Home cards grid ---------- */
+  .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .home-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:18px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;
+    transition:box-shadow .15s, transform .05s, border-color .15s;
+  }
+  .home-card:hover{box-shadow:0 8px 22px rgba(0,0,0,.08);border-color:var(--hc-color,var(--accent));}
+  .home-card:active{transform:scale(.98);}
+  .home-card .hc-icon{
+    width:44px;height:44px;border-radius:12px;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+  }
+  .home-card .hc-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .home-card .hc-title{font-weight:800;font-size:14.5px;color:var(--ink);}
+  .home-card .hc-sub{font-size:12px;color:var(--ink-soft);}
   .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
   .row .field{flex:1;min-width:180px;margin-bottom:0;}
 
@@ -359,6 +376,13 @@
     .main{padding:14px 12px;}
     .grid-2{grid-template-columns:1fr;}
     .card{padding:16px;border-radius:12px;}
+    .home-grid{grid-template-columns:1fr 1fr;gap:12px;}
+    .home-card{
+      flex-direction:column;align-items:flex-start;padding:16px;border-radius:14px;gap:10px;
+    }
+    .home-card .hc-icon{width:42px;height:42px;border-radius:50%;font-size:18px;}
+    .home-card .hc-title{font-size:13.5px;color:var(--hc-color,var(--ink));}
+    .home-card .hc-sub{font-size:11px;}
     .row{flex-direction:column;align-items:stretch;}
     .row .field{width:100%;min-width:0;}
     .row .btn{width:100%;padding:13px 18px;}
@@ -819,6 +843,7 @@
   // ---------------- role menu config ----------------
   var MENUS = {
     admin:[
+      {key:'home', label:'کور'},
       {key:'managers', label:'مديران'},
       {key:'ntos', label:'مشتريان'},
       {key:'sales', label:'بنډلونه'},
@@ -829,12 +854,14 @@
       {key:'complaints', label:'شکایتونه'}
     ],
     manager:[
+      {key:'home', label:'کور'},
       {key:'ntos', label:'مشتريان'},
       {key:'sales', label:'بنډلونه'},
       {key:'report', label:'فروشات'},
       {key:'nto_report', label:'راپور-مشتري'}
     ],
     nto:[
+      {key:'home', label:'کور'},
       {key:'bundle', label:'نوى بنډل استول'},
       {key:'deactivate', label:'بنډل غيري فعالول'},
       {key:'sales', label:'بنډلونه'},
@@ -843,6 +870,49 @@
     ]
   };
   var ROLE_LABEL = {admin:'اډمین', manager:'منیجر', nto:'مشتري'};
+
+  // ---------------- home cards: icon + color + subtitle per section key ----------------
+  var HOME_META = {
+    bundle:        {icon:'&#128230;', color:'#2E7D5B', sub:'نوی بنډل واستوئ'},
+    deactivate:    {icon:'&#128683;', color:'#B3432B', sub:'بنډل غیرفعالول'},
+    sales:         {icon:'&#128209;', color:'#B8862B', sub:'بنډلونو حالت'},
+    report:        {icon:'&#128200;', color:'#2E5FA3', sub:'فروشاتو راپور'},
+    nto_report:    {icon:'&#128203;', color:'#7C3AED', sub:'د مشتري راپور'},
+    managers:      {icon:'&#128188;', color:'#0E7490', sub:'مدیر حسابونه'},
+    ntos:          {icon:'&#128101;', color:'#2E7D5B', sub:'مشتريانو حسابونه'},
+    manager_sales: {icon:'&#128176;', color:'#B8862B', sub:'مديرانو فروشات'},
+    rolls:         {icon:'&#128227;', color:'#C2185B', sub:'پیغام لیږل'},
+    complaints:    {icon:'&#128172;', color:'#B3432B', sub:'شکایت او نظر'}
+  };
+
+  function renderHomeSection(body, role){
+    var items = MENUS[role].filter(function(m){ return m.key!=='home'; });
+    body.innerHTML = '<div class="home-grid">'+
+      items.map(function(m){
+        var meta = HOME_META[m.key] || {icon:'&#128193;', color:'#5B6675', sub:''};
+        return '<div class="home-card" data-sec="'+m.key+'" style="--hc-color:'+meta.color+'">'+
+          '<div class="hc-icon" style="background:'+meta.color+'22;color:'+meta.color+'">'+meta.icon+'</div>'+
+          '<div class="hc-text">'+
+            '<div class="hc-title">'+m.label+'</div>'+
+            '<div class="hc-sub">'+meta.sub+'</div>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+    Array.prototype.forEach.call(body.querySelectorAll('.home-card'), function(el){
+      el.onclick = function(){
+        state.section = el.getAttribute('data-sec');
+        state.mobileMenuOpen = false;
+        if(state.section==='sales' && role==='nto'){
+          state.bundles.forEach(function(b){
+            if(b.ntoUsername===state.currentUser.username && (b.status==='approved'||b.status==='rejected')) b.ntoSeen = true;
+          });
+          persistBundles();
+        }
+        render();
+      };
+    });
+  }
 
   // ---------------- render root ----------------
   function render(){
@@ -1293,7 +1363,7 @@
   }
 
   function sectionTitle(key){
-    var map = {bundle:'نوى بنډل-استول', deactivate:'بنډل-غيري فعالول', managers:'مدير-حسابونه', ntos:'مشتري-اضافه کول', sales:'بنډلونو-حالت', report:'فروشاتو -راپور', nto_report:'مشتري-راپور', manager_sales:'مديرانو فروشات', rolls:'پيغام-استول', complaints:'راليږل شوي شکایتونه', commission:'کميشن ټاکنه'};
+    var map = {home:'کور', bundle:'نوى بنډل-استول', deactivate:'بنډل-غيري فعالول', managers:'مدير-حسابونه', ntos:'مشتري-اضافه کول', sales:'بنډلونو-حالت', report:'فروشاتو -راپور', nto_report:'مشتري-راپور', manager_sales:'مديرانو فروشات', rolls:'پيغام-استول', complaints:'راليږل شوي شکایتونه', commission:'کميشن ټاکنه'};
     return map[key] || '';
   }
 
@@ -1348,6 +1418,12 @@
 
   function renderSection(main){
     var role = state.currentUser.role;
+
+    if(state.section==='home'){
+      main.innerHTML = '<div id="sec-body"></div>';
+      return renderHomeSection(document.getElementById('sec-body'), role);
+    }
+
     main.innerHTML = '<div class="main-header" id="main-header-row"><div><h2>'+sectionTitle(state.section)+'</h2></div></div><div id="sec-body"></div>';
     var headerRow = document.getElementById('main-header-row');
     var body = document.getElementById('sec-body');
