@@ -1407,12 +1407,33 @@
         comment:null, actionedBy:null, actionedAt:null, processingBy:null,
         ntoSeen: true
       };
+      // Show it and move the customer on right away -- sending must never
+      // feel slow, so do not wait on the network before this.
       state.bundles.unshift(entry);
       state.bundleDraft = {field1:'', field2:''};
-      persistBundles().then(function(){
-        showToast('بنډل واستول شو، اوس د تمې په حالت کې دی.');
-        state.section = 'sales';
-        renderDashboard(document.getElementById('app'));
+      showToast('بنډل واستول شو، اوس د تمې په حالت کې دی.');
+      state.section = 'sales';
+      renderDashboard(document.getElementById('app'));
+
+      // Save it by adding just this one entry to whatever is currently on
+      // the server, inside a transaction -- never by overwriting the whole
+      // list from our own local copy (persistBundles()). A blind overwrite
+      // here could land at the same moment as another customer's own
+      // submission and erase it from the server, even after a manager has
+      // already been notified about it.
+      var bundlesRef = db.collection('appdata').doc('bundles');
+      db.runTransaction(function(tx){
+        return tx.get(bundlesRef).then(function(snap){
+          var list = (snap.exists && snap.data().list) ? snap.data().list.slice() : [];
+          list.unshift(entry);
+          tx.set(bundlesRef, {list:list}, {merge:true});
+        });
+      }).catch(function(err){
+        console.error(err);
+        var idx = state.bundles.indexOf(entry);
+        if(idx>=0) state.bundles.splice(idx,1);
+        showToast('بنډل ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
+        render();
       });
     };
 
@@ -3477,7 +3498,7 @@
           clearSavedSession();
           state.currentUser = null;
           state.mySessionToken = null;
-          showToast('نوی بدلون راغلی، مهرباني وکړئ بیا داخل شئ.');
+          showToast('نوی تغیرات راغلی، مهرباني وکړئ بیا داخل شئ.');
           setTimeout(function(){ window.location.reload(); }, 700);
         }
       }).catch(function(){});
