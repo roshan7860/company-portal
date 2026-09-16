@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.1">
+<meta name="app-build-version" content="0.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -441,6 +441,21 @@
     .dashboard-back-btn{display:inline-flex !important;width:38px;height:38px;padding:0;border-radius:11px;align-items:center;justify-content:center;background:#fff;color:#59616E;border:1px solid #E2E5EB;font-size:19px;}
     .section-page-header{flex:1;align-items:center;}
   }
+
+
+  /* ---------- Simplified header: no side menu/user icon ---------- */
+  .mobile-topbar .mt-title{font-size:12px !important;font-weight:700 !important;}
+  .mobile-topbar .mt-spacer{width:120px !important;flex:none;}
+  .mt-user-wrap{position:relative;flex:none;}
+  .mt-user-btn{border:none !important;background:transparent !important;color:#fff !important;padding:6px 4px !important;max-width:180px !important;}
+  .mt-user-btn .mt-user-name-clickable{
+    display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;
+  }
+  .mt-user-btn:hover .mt-user-name-clickable{text-decoration:underline;}
+  .shell{display:block !important;}
+  .shell > .main{width:100% !important;max-width:none !important;}
+  .sidebar,.sidebar-backdrop,.hamburger-btn{display:none !important;}
 
 </style>
 </head>
@@ -1264,36 +1279,18 @@
 
     root.innerHTML =
       '<div class="mobile-topbar">'+
-        '<div class="mt-left">'+
-          '<div class="mt-user-wrap" id="mt-user-wrap">'+
-            '<button class="mt-user-btn" id="mt-user-btn" title="'+escapeHtml(state.currentUser.username)+'"><span class="mt-avatar"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"></circle><path d="M5.5 20c.5-4.1 2.7-6.2 6.5-6.2s6 2.1 6.5 6.2"></path></svg></span></button>'+
-            userMenuHtml+
-          '</div>'+
+        '<div class="mt-user-wrap" id="mt-user-wrap">'+
+          '<button class="mt-user-btn" id="mt-user-btn" title="د یوزر مینو">'+
+            '<span class="mt-user-name-clickable">'+escapeHtml(state.currentUser.username)+'</span>'+
+          '</button>'+
+          userMenuHtml+
         '</div>'+
         '<span class="mt-title">روشن-نزديک شدن</span>'+
-        '<div class="mt-right">'+
-          '<span class="mt-user-name-display">'+escapeHtml(state.currentUser.username)+'</span>'+
-          '<button class="hamburger-btn" id="mobile-menu-btn" title="مینو">&#9776;</button>'+
-        '</div>'+
+        '<div class="mt-spacer"></div>'+
       '</div>'+
       '<div class="shell">'+
-        '<div class="sidebar">'+
-          '<div class="brand"><div class="mark"></div><b>روشن-نزديک شدن</b></div>'+
-          '<div class="role-tag">'+ROLE_LABEL[role]+'</div>'+
-          '<div style="display:flex;flex-direction:column;gap:2px;flex:1;">'+navHtml+'</div>'+
-          '<div class="spacer"></div>'+
-        '</div>'+
         '<div class="main" id="main-area"></div>'+
       '</div>';
-
-    var mmBtn = document.getElementById('mobile-menu-btn');
-    if(mmBtn){
-      mmBtn.onclick = function(){
-        state.mobileMenuOpen = !state.mobileMenuOpen;
-        var sb = document.querySelector('.sidebar');
-        if(sb) sb.classList.toggle('mobile-open', state.mobileMenuOpen);
-      };
-    }
 
     function openSection(sec){
       if(!sec) return;
