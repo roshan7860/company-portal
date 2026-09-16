@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.10">
+<meta name="app-build-version" content="0.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -156,6 +156,7 @@
     background:#fff;border-radius:16px;padding:40px 32px;max-width:420px;text-align:center;
     box-shadow:0 30px 60px rgba(0,0,0,.35);
   }
+  .blocked-card .icon .ui-icon{width:27px;height:27px;}
   .blocked-card .icon{
     width:56px;height:56px;border-radius:50%;background:var(--danger-soft);
     display:flex;align-items:center;justify-content:center;margin:0 auto 18px auto;
@@ -211,6 +212,8 @@
   .main{padding:30px 34px;overflow-y:auto;min-width:0;}
   .main-header{margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
   .main-header h2{margin:0 0 4px 0;font-size:21px;}
+  /* Internal page names are intentionally hidden; Dashboard remains the landing page. */
+  .main-header h2{display:none !important;}
   .main-header p{margin:0;color:var(--ink-soft);font-size:13.5px;}
   .header-actions{display:flex;gap:8px;}
 
@@ -446,6 +449,47 @@
   }
 
 
+
+  /* ---------- Polished internal-page UI ---------- */
+  .ui-icon{width:18px;height:18px;display:block;flex:none;stroke:currentColor;}
+  .icon-btn .ui-icon,.icon-btn-sm .ui-icon,.icon-btn-copy .ui-icon{width:18px;height:18px;}
+  .icon-btn-sm .ui-icon{width:16px;height:16px;}
+  .icon-btn-copy{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;}
+  .icon-btn,.icon-btn-sm,.icon-btn-copy{transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease;}
+  .icon-btn:hover,.icon-btn-sm:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(24,34,52,.10);}
+  .main{background:linear-gradient(180deg,rgba(248,250,252,.72),rgba(244,247,250,.28));}
+  #sec-body{max-width:1120px;margin:0 auto;}
+  .card{border-radius:18px;padding:22px 22px 20px;box-shadow:0 8px 24px rgba(24,34,52,.045);}
+  .card h4{font-size:16px;line-height:1.8;display:flex;align-items:center;gap:9px;}
+  .card h4:before{content:"";width:7px;height:24px;border-radius:6px;background:var(--accent);display:inline-block;flex:none;}
+  .row{gap:16px;}
+  .field input,.field textarea,.field select{border-radius:12px;background:#fff;min-height:44px;box-shadow:0 2px 8px rgba(24,34,52,.025);}
+  .btn{min-height:44px;border-radius:12px;}
+  .search-row input{border-radius:12px;min-height:44px;background:#fff;box-shadow:0 4px 14px rgba(24,34,52,.035);}
+  .search-row .search-icon{display:flex;align-items:center;justify-content:center;}
+  .search-row .search-icon .ui-icon{width:18px;height:18px;}
+  table{border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:14px;}
+  table thead th{background:#f6f8fb;}
+  table tbody tr{transition:background .12s ease;}
+  table tbody tr:hover{background:#fafbfd;}
+  .header-actions{align-items:center;}
+  .dashboard-back-btn .ui-icon{width:19px;height:19px;}
+  .pager .pager-nav button .ui-icon{width:18px;height:18px;}
+  .pager .pager-nav button[data-pg="next"] .ui-icon{transform:rotate(180deg);}
+  .mt-user-item{display:flex;align-items:center;gap:9px;}
+  .mt-user-item .ui-icon{width:17px;height:17px;}
+  .mt-user-dropdown{padding:8px;border-radius:14px;}
+  .mt-user-item{border-radius:10px;}
+  @media (max-width:860px){
+    .main{padding:14px 12px 28px;}
+    #sec-body{max-width:none;}
+    .card{padding:17px 14px;border-radius:16px;margin-bottom:14px;}
+    .card h4{font-size:15px;}
+    .row{gap:10px;}
+    .btn{min-height:46px;}
+    table tr{border-radius:14px!important;box-shadow:0 3px 12px rgba(24,34,52,.035);}
+  }
+
   /* ---------- Simplified header: no side menu/user icon ---------- */
   .mobile-topbar .mt-title{font-size:12px !important;font-weight:700 !important;}
   .mobile-topbar .mt-spacer{width:120px !important;flex:none;}
@@ -558,9 +602,9 @@
         '<div class="pager-info">'+startN+'-'+endN+' / '+total+'</div>'+
         '<div class="pager-nav">'+
           '<button data-pg="first" '+(page<=0?'disabled':'')+' title="لومړی">&#171;</button>'+
-          '<button data-pg="prev" '+(page<=0?'disabled':'')+' title="مخکینی">&#8250;</button>'+
+          '<button data-pg="prev" '+(page<=0?'disabled':'')+' title="مخکینی">'+uiIcon('back')+'</button>'+
           '<span class="pager-page">'+(page+1)+' / '+pageCount+'</span>'+
-          '<button data-pg="next" '+(page>=pageCount-1?'disabled':'')+' title="راتلونکی">&#8249;</button>'+
+          '<button data-pg="next" '+(page>=pageCount-1?'disabled':'')+' title="راتلونکی">'+uiIcon('back')+'</button>'+
           '<button data-pg="last" '+(page>=pageCount-1?'disabled':'')+' title="وروستی">&#187;</button>'+
         '</div>'+
       '</div>';
@@ -930,7 +974,7 @@
     if(state.loadError){
       root.innerHTML =
         '<div class="blocked-wrap"><div class="blocked-card">'+
-          '<div class="icon">&#9888;</div>'+
+          '<div class="icon">'+uiIcon('warning')+'</div>'+
           '<h3 style="direction:rtl;">له سرور سره وصل کیدل ونشول</h3>'+
           '<p style="direction:rtl;">ستاسو انټرنېټ یا Firestore سره اړیکه ونشوه. مهرباني وکړئ خپل انټرنېټ وګورئ او بیا هڅه وکړئ. (د خوندیتوب لپاره، تر هغه چې اړیکه بیرته رغیږي، هیڅ معلومات به نه بدلیږي.)</p>'+
           '<button class="btn btn-ghost" id="le-retry" style="margin-top:18px;">بیا هڅه</button>'+
@@ -980,12 +1024,8 @@
   // typeable until the browser/device grants location access. This repeats
   // the request (with the button below) until it succeeds.
   function renderLogin(root){
-    if(!navigator.geolocation || state.geoPermissionGranted){
-      renderLoginForm(root);
-      return;
-    }
-    renderLocationGate(root);
-    requestGeoPermission();
+    // Login no longer asks the browser/device for location permission.
+    renderLoginForm(root);
   }
 
   function renderLocationGate(root){
@@ -1097,9 +1137,10 @@
       found.onlineStatus = 'online';
       state.myForceLogoutBaseline = found.forceLogoutAt || 0;
       persistUsers();
-      recordLoginLocation(found.username);
+      recordLoginLocationByIp(found.username);
     }
     saveSession();
+    ensureDashboardHistory();
     requestNotificationPermission();
     render();
   }
@@ -1187,7 +1228,7 @@
   function renderBlocked(root){
     root.innerHTML =
       '<div class="blocked-wrap"><div class="blocked-card">'+
-        '<div class="icon">&#9888;</div>'+
+        '<div class="icon">'+uiIcon('warning')+'</div>'+
         '<h3 style="direction:rtl;">'+(function(){var u=state.users.find(function(x){return state.currentUser&&x.username===state.currentUser.username;}); return u&&u.status==='pending_admin'?'ستاسو حساب د اډمین تایید ته انتظار دی':(u&&u.status==='rejected_admin'?'ستاسو حساب د اډمین لخوا رد شوی':'ستاسو دننه کیدل بند شوي دي');})()+'</h3>'+
         '<p style="direction:rtl;">'+(function(){var u=state.users.find(function(x){return state.currentUser&&x.username===state.currentUser.username;}); return u&&u.adminReviewComment?escapeHtml(u.adminReviewComment):(u&&u.status==='pending_admin'?'مهرباني وکړئ د اډمین تایید ته انتظار وکړئ.':'Your user has been disabled by the Admin. Please contact them.');})()+'</p>'+
         '<button class="btn btn-ghost" id="bk-back" style="margin-top:18px;">بیرته لاگ-این ته</button>'+
@@ -1203,7 +1244,7 @@
   function renderSessionReplaced(root){
     root.innerHTML =
       '<div class="blocked-wrap"><div class="blocked-card">'+
-        '<div class="icon">&#9888;</div>'+
+        '<div class="icon">'+uiIcon('warning')+'</div>'+
         '<h3 style="direction:rtl;">ستاسو حساب په بل ځای کې دننه شوی</h3>'+
         '<p style="direction:rtl;">ستاسو منیجر حساب په بل ډیوایس یا براوزر کې دننه شوی، نو دلته له سیسټم څخه وایستل شوئ.</p>'+
         '<button class="btn btn-ghost" id="sr-back" style="margin-top:18px;">بیرته لاگ-این ته</button>'+
@@ -1215,6 +1256,26 @@
       render();
     };
   }
+
+  // ---------------- MOBILE/BROWSER BACK -> DASHBOARD ----------------
+  // Any browser/Android WebView back action from an internal page returns
+  // directly to the dashboard instead of navigating through internal pages.
+  var dashboardHistoryReady = false;
+  function ensureDashboardHistory(){
+    if(dashboardHistoryReady || !window.history || !window.history.replaceState) return;
+    try{
+      window.history.replaceState({roshanPortal:true, section:'home'}, '', window.location.href);
+      dashboardHistoryReady = true;
+    }catch(e){}
+  }
+  window.addEventListener('popstate', function(){
+    if(!state.currentUser) return;
+    state.section = null;
+    state.modal = null;
+    state.userMenuOpen = false;
+    render();
+    ensureDashboardHistory();
+  });
 
   // ---------------- DASHBOARD SHELL ----------------
   function renderDashboard(root){
@@ -1278,12 +1339,12 @@
     if(state.userMenuOpen){
       userMenuHtml =
         '<div class="mt-user-dropdown">'+
-          (role!=='nto' ? '<button class="mt-user-item" id="um-desktop">'+(state.forceDesktop?'&#128241; موبایل لید':'&#128421; ډیسک-ټاپ لید')+'</button>' : '')+
-          (canChangePw ? '<button class="mt-user-item" id="um-changepw">&#128273; پاسورډ بدلول</button>' : '')+
-          (role==='admin' ? '<button class="mt-user-item" id="um-commission">&#128176; کميشن ټاکنه</button>' : '')+
-          (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">&#128274; د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
+          (role!=='nto' ? '<button class="mt-user-item" id="um-desktop">'+(state.forceDesktop?uiIcon('mobile')+' موبایل لید':uiIcon('desktop')+' ډیسک-ټاپ لید')+'</button>' : '')+
+          (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' پاسورډ بدلول</button>' : '')+
+          (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کميشن ټاکنه</button>' : '')+
+          (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
           '<div class="mt-user-item" style="font-size:12px;opacity:.75;cursor:default;">ویب ورژن: '+escapeHtml(APP_BUILD_VERSION)+'</div>'+
-          '<button class="mt-user-item mt-user-item-danger" id="um-logout">&#128682; وتل (Logout)</button>'+
+          '<button class="mt-user-item mt-user-item-danger" id="um-logout">'+uiIcon('logout')+' وتل (Logout)</button>'+
         '</div>';
     }
 
@@ -1381,6 +1442,30 @@
     renderSection(document.getElementById('main-area'));
   }
 
+  // ---------------- SHARED UI ICONS ----------------
+  function uiIcon(name){
+    var paths={
+      download:'<path d="M12 3v11"></path><path d="m7 10 5 5 5-5"></path><path d="M4 20h16"></path>',
+      reset:'<path d="M4 12a8 8 0 1 0 2.35-5.65"></path><path d="M4 5v5h5"></path>',
+      edit:'<path d="m4 16.5-.8 3.3 3.3-.8L18.8 7.7a2.2 2.2 0 0 0-3.1-3.1L4 16.5z"></path><path d="m14.5 6.5 3 3"></path>',
+      delete:'<path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path>',
+      copy:'<rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>',
+      search:'<circle cx="10.8" cy="10.8" r="6.5"></circle><path d="m16 16 5 5"></path>',
+      info:'<circle cx="12" cy="12" r="9"></circle><path d="M12 10v6"></path><path d="M12 7h.01"></path>',
+      warning:'<path d="M12 3 22 20H2L12 3z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>',
+      back:'<path d="m14.5 5-7 7 7 7"></path>',
+      desktop:'<rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path>',
+      mobile:'<rect x="7" y="2.5" width="10" height="19" rx="2"></rect><path d="M10.5 18.5h3"></path>',
+      key:'<circle cx="8" cy="15" r="4"></circle><path d="m11 12 8-8M16 5l3 3M14 7l3 3"></path>',
+      money:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="12" cy="12" r="3"></circle><path d="M7 8h.01M17 16h.01"></path>',
+      lock:'<rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path>',
+      logout:'<path d="M10 5H5v14h5"></path><path d="m14 8 4 4-4 4"></path><path d="M18 12H9"></path>',
+      eye:'<path d="M2.5 12s3.2-5 9.5-5 9.5 5 9.5 5-3.2 5-9.5 5-9.5-5-9.5-5z"></path><circle cx="12" cy="12" r="2"></circle>'
+    };
+    var d=paths[name]||'<circle cx="12" cy="12" r="8"></circle>';
+    return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+  }
+
   function dashboardIcon(key){
     var paths = {
       managers:'<circle cx="8" cy="8" r="3"></circle><circle cx="16" cy="9" r="2.5"></circle><path d="M2.8 20c.6-3.1 2.4-4.7 5.2-4.7s4.6 1.6 5.2 4.7"></path><path d="M13.5 15.2c2.6-.5 5.2 1 5.7 4.8"></path>',
@@ -1473,7 +1558,7 @@
     btn.className = 'icon-btn';
     btn.setAttribute('data-admin-page-export','1');
     btn.title = 'اکسیل ډاونلوډ';
-    btn.innerHTML = '&#128190;';
+    btn.innerHTML = uiIcon('download');
     wrap.appendChild(btn);
     btn.onclick = function(){ exportAdminSection(section); };
   }
@@ -1514,7 +1599,7 @@
       renderHomeSection(document.getElementById('sec-body'), role);
       return;
     }
-    main.innerHTML = '<div class="main-header" id="main-header-row"><div class="section-page-header"><button class="icon-btn dashboard-back-btn" id="dashboard-back-btn" title="ډیشبورډ">&#8594;</button><h2>'+sectionTitle(state.section)+'</h2></div></div><div id="sec-body"></div>';
+    main.innerHTML = '<div class="main-header" id="main-header-row"><div class="section-page-header"><button class="icon-btn dashboard-back-btn" id="dashboard-back-btn" title="ډیشبورډ">'+uiIcon('back')+'</button><h2>'+sectionTitle(state.section)+'</h2></div></div><div id="sec-body"></div>';
     var headerRow = document.getElementById('main-header-row');
     var body = document.getElementById('sec-body');
     var backBtn = document.getElementById('dashboard-back-btn');
@@ -1720,8 +1805,8 @@
       headerRow.innerHTML =
         '<div><h2>'+sectionTitle('sales')+'</h2></div>'+
         '<div class="header-actions">'+
-          '<button class="icon-btn" id="sales-export" title="اکسیل ډاونلوډ">&#128190;</button>'+
-          (role==='admin' ? '<button class="icon-btn" id="sales-reset" title="ریسیټ">&#8635;</button>' : '')+
+          '<button class="icon-btn" id="sales-export" title="اکسیل ډاونلوډ">'+uiIcon('download')+'</button>'+
+          (role==='admin' ? '<button class="icon-btn" id="sales-reset" title="ریسیټ">'+uiIcon('reset')+'</button>' : '')+
         '</div>';
 
       document.getElementById('sales-export').onclick = function(){
@@ -1770,7 +1855,7 @@
     if(state.bundlePage<0) state.bundlePage = 0;
     var pageRows = rows.slice(state.bundlePage*PAGE_SIZE, (state.bundlePage+1)*PAGE_SIZE);
 
-    var searchHtml = '<div class="search-row"><input id="bundle-search" type="text" placeholder="د مشتري نوم، شمیره یا بنډل ولټوئ..." value="'+escapeHtml(state.bundleSearch)+'"><span class="search-icon">&#128269;</span></div>';
+    var searchHtml = '<div class="search-row"><input id="bundle-search" type="text" placeholder="د مشتري نوم، شمیره یا بنډل ولټوئ..." value="'+escapeHtml(state.bundleSearch)+'"><span class="search-icon">'+uiIcon('search')+'</span></div>';
 
     if(!rows.length){
       body.innerHTML = '<div class="card">'+searchHtml+'<div class="empty-state">ستاسو د لټون سره سم هیڅ معلومات ونه موندل شول.</div></div>';
@@ -1805,13 +1890,13 @@
         // sees the full number/button as before.
         var maskForManager = (role==='manager' && b.status!=='approved' && b.status!=='rejected' && b.status!=='deactivated');
         var numberDisplay = maskForManager ? maskLast3Digits(b.field1) : escapeHtml(b.field1);
-        var copyBtn = (role==='manager' && !maskForManager) ? ' <button class="icon-btn-copy" data-copy="'+escapeHtml(b.field1)+'" title="کاپي کول">&#128203;</button>' : '';
+        var copyBtn = (role==='manager' && !maskForManager) ? ' <button class="icon-btn-copy" data-copy="'+escapeHtml(b.field1)+'" title="کاپي کول">'+uiIcon('copy')+'</button>' : '';
         // Resubmitted rows show the resubmit date/time instead of the
         // original submission date/time.
         var dateVal = (b.status==='resubmit' && b.waitStartAt) ? b.waitStartAt : b.createdAt;
         var dateCell = fmtDateHtml(dateVal);
         if(role==='admin'){
-          dateCell = '<button class="icon-btn-sm" data-edit-bundle="'+b.id+'" title="ایډیټ" style="margin-left:6px;">&#9998;</button><button class="icon-btn-sm" data-delete-bundle="'+b.id+'" title="ړنګول" style="margin-left:6px;">&#128465;</button>'+dateCell;
+          dateCell = '<button class="icon-btn-sm" data-edit-bundle="'+b.id+'" title="ایډیټ" style="margin-left:6px;">'+uiIcon('edit')+'</button><button class="icon-btn-sm" data-delete-bundle="'+b.id+'" title="ړنګول" style="margin-left:6px;">'+uiIcon('delete')+'</button>'+dateCell;
         }
         return '<tr>'+
           (role!=='nto' ? '<td data-label="مشتري-نوم">'+escapeHtml(b.ntoUsername)+'</td>' : '')+
@@ -2102,6 +2187,7 @@
     db.runTransaction(function(tx){
       return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
+        if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) throw new Error('decision-in-progress');
         var live=list.find(function(x){return x && x.id===bundleId;});
         if(!live) throw new Error('bundle-not-found');
         if(live.status==='in_process' && live.processingBy && live.processingBy!==state.currentUser.username){ throw new Error('bundle-busy'); }
@@ -2163,16 +2249,51 @@
     var commentEl=document.getElementById('proc-comment');
     var comment=(overrideComment!=null)?overrideComment:(commentEl?commentEl.value.trim():'');
     if(!comment){showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.');return;}
-    var buttons=['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
-    buttons.forEach(function(x){if(x){x.disabled=true;x.style.opacity='.6';}});
-    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
+
     if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
+    if(state.pendingBundleDecisions[bundleId]) return;
     state.pendingBundleDecisions[bundleId]=true;
 
     var actor=state.currentUser.username;
-    var approvalAt=Date.now();
+    var actionAt=Date.now();
     var approvalId=uid();
     var amount=extractNumber(comment);
+    var local=state.bundles.find(function(x){return x.id===bundleId;});
+    if(!local){
+      delete state.pendingBundleDecisions[bundleId];
+      return;
+    }
+
+    // Keep a small snapshot so a failed server write can be rolled back safely.
+    var before={
+      status:local.status, comment:local.comment, actionedBy:local.actionedBy,
+      actionedAt:local.actionedAt, processingBy:local.processingBy,
+      prevStatusBeforeProcess:local.prevStatusBeforeProcess, ntoSeen:local.ntoSeen,
+      updatedAt:local.updatedAt, approvalId:local.approvalId, approvedAt:local.approvedAt,
+      approvedBy:local.approvedBy, salesAmount:local.salesAmount, salesLedgerKey:local.salesLedgerKey
+    };
+
+    // Optimistic UI: close the modal and update this bundle immediately.
+    // Firestore remains authoritative in the background.
+    local.status=decision;
+    local.comment=comment;
+    local.actionedBy=actor;
+    local.actionedAt=actionAt;
+    local.processingBy=null;
+    local.prevStatusBeforeProcess=null;
+    local.ntoSeen=false;
+    local.updatedAt=actionAt;
+    if(decision==='approved'){
+      local.approvalId=approvalId;
+      local.approvedAt=actionAt;
+      local.approvedBy=actor;
+      local.salesAmount=amount;
+      local.salesLedgerKey=bundleId+'|'+approvalId+'|'+actionAt;
+    }
+    state.modal=null;
+    render();
+    showToast(decision==='approved'?'بنډل فعاله شو؛ معلومات ثبتېږي...':'بنډل رد شو؛ معلومات ثبتېږي...');
+
     var bundlesRef=db.collection('appdata').doc('bundles');
     var totalsRef=db.collection('appdata').doc('salesTotals');
 
@@ -2183,9 +2304,6 @@
         var live=list.find(function(x){return x&&x.id===bundleId;});
         if(!live) throw new Error('bundle-not-found');
 
-        // The decision is accepted only for the manager/admin who owns the
-        // current processing lock. If the claim write is still in flight, a
-        // pending/resubmit bundle may be decided by the current actor directly.
         if(live.status==='in_process'){
           if(live.processingBy!==actor) throw new Error('bundle-busy');
         }else if(live.status!=='pending' && live.status!=='resubmit'){
@@ -2206,30 +2324,29 @@
         live.status=decision;
         live.comment=comment;
         live.actionedBy=actor;
-        live.actionedAt=approvalAt;
+        live.actionedAt=actionAt;
         live.processingBy=null;
         live.prevStatusBeforeProcess=null;
         live.ntoSeen=false;
-        live.updatedAt=approvalAt;
+        live.updatedAt=actionAt;
 
         if(decision==='approved'){
           live.approvalId=approvalId;
-          live.approvedAt=approvalAt;
+          live.approvedAt=actionAt;
           live.approvedBy=actor;
           live.salesAmount=amount;
-          live.salesLedgerKey=bundleId+'|'+approvalId+'|'+approvalAt;
+          live.salesLedgerKey=bundleId+'|'+approvalId+'|'+actionAt;
         }
 
-        var totals=tSnap.exists?(tSnap.data()||{}):{};
-        var managerSales=totals.managerSales||{};
-        var ntoSales=totals.ntoSales||{};
-        var ledger=totals.salesLedger||{};
-        var changedTotals=false;
+        tx.set(bundlesRef,{list:list},{merge:true});
 
         if(decision==='approved'){
+          var totals=tSnap.exists?(tSnap.data()||{}):{};
+          var managerSales=totals.managerSales||{};
+          var ntoSales=totals.ntoSales||{};
+          var ledger=totals.salesLedger||{};
           var ledgerKey=live.salesLedgerKey;
-          // Idempotency: the same approval identity can never add sales twice,
-          // even if the transaction is retried by Firestore.
+
           if(!ledger[ledgerKey]){
             if(!managerSales[approvedManager]) managerSales[approvedManager]={total:0,count:0};
             managerSales[approvedManager]={
@@ -2243,33 +2360,32 @@
                 count:(Number(ntoSales[live.ntoUsername].count)||0)+1
               };
             }
-            ledger[ledgerKey]={bundleId:bundleId,amount:amount,manager:approvedManager,ntoUsername:live.ntoUsername||null,approvedAt:approvalAt,approvalId:approvalId};
-            changedTotals=true;
+            ledger[ledgerKey]={
+              bundleId:bundleId,amount:amount,manager:approvedManager,
+              ntoUsername:live.ntoUsername||null,approvedAt:actionAt,approvalId:approvalId
+            };
+            tx.set(totalsRef,{
+              managerSales:managerSales,ntoSales:ntoSales,
+              salesLedger:ledger,lastApprovalAt:actionAt
+            },{merge:true});
           }
-        }
-
-        tx.set(bundlesRef,{list:list},{merge:true});
-        if(decision==='approved' && changedTotals){
-          tx.set(totalsRef,{managerSales:managerSales,ntoSales:ntoSales,salesLedger:ledger,lastApprovalAt:approvalAt},{merge:true});
         }
       });
     }).then(function(){
-      // Replace local copy from the transaction result without writing any
-      // other bundle. This prevents the old "previous bundle returns to
-      // pending" race completely.
-      var local=state.bundles.find(function(x){return x.id===bundleId;});
-      if(local){
-        local.status=decision; local.comment=comment; local.actionedBy=actor; local.actionedAt=approvalAt; local.processingBy=null; local.prevStatusBeforeProcess=null; local.ntoSeen=false; local.updatedAt=approvalAt;
-        if(decision==='approved'){local.approvalId=approvalId;local.approvedAt=approvalAt;local.approvedBy=actor;local.salesAmount=amount;local.salesLedgerKey=bundleId+'|'+approvalId+'|'+approvalAt;}
-      }
-      state.modal=null;
-      render();
       showToast(decision==='approved'?'بنډل فعاله شو او فروشات ثبت شول.':'بنډل رد شو.');
+      render();
     }).catch(function(err){
       console.error(err);
+      var cur=state.bundles.find(function(x){return x.id===bundleId;});
+      // Roll back only if this client still owns the optimistic version.
+      if(cur && cur.actionedAt===actionAt && cur.actionedBy===actor){
+        Object.keys(before).forEach(function(k){cur[k]=before[k];});
+      }
       showToast(err&&err.message==='bundle-busy'?'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.':err&&err.message==='bundle-already-decided'?'دا بنډل مخکې لا فیصله شوی دی.':'د بنډل د ثبت پر مهال تېروتنه وشوه، بیا هڅه وکړئ.');
       render();
-    }).finally(function(){delete state.pendingBundleDecisions[bundleId];});
+    }).finally(function(){
+      delete state.pendingBundleDecisions[bundleId];
+    });
   }
 
   // ---------------- DEACTIVATE-CONFIRM MODAL (admin/manager: deactivate bundles request) ----------------
@@ -2535,7 +2651,7 @@
           '<div class="proc-number-box">'+
             '<div class="proc-number-row">'+
               '<span class="proc-number" dir="ltr">'+escapeHtml(procB?procB.field1:'')+'</span>'+
-              '<button class="icon-btn-copy" id="proc-copy-number" title="کاپي کول">&#128203;</button>'+
+              '<button class="icon-btn-copy" id="proc-copy-number" title="کاپي کول">'+uiIcon('copy')+'</button>'+
             '</div>'+
             '<div class="proc-bundle-name">'+escapeHtml(procB?procB.field2:'')+'</div>'+
           '</div>'+
@@ -2559,7 +2675,7 @@
           '<div class="proc-number-box">'+
             '<div class="proc-number-row">'+
               '<span class="proc-number" dir="ltr">'+escapeHtml(deactB?deactB.field1:'')+'</span>'+
-              '<button class="icon-btn-copy" id="deact-copy-number" title="کاپي کول">&#128203;</button>'+
+              '<button class="icon-btn-copy" id="deact-copy-number" title="کاپي کول">'+uiIcon('copy')+'</button>'+
             '</div>'+ '<div style="height:42px;"></div>'+
           '</div>'+
           '<div class="modal-actions">'+
@@ -2824,7 +2940,7 @@
         '</div>'+
       '</div>'+
       '<div class="card"><h4>د '+roleLabel+' حسابونه</h4>'+
-        (fullList.length ? '<div class="search-row"><input id="nu-search" type="text" placeholder="د '+roleLabel+' لټون (یوزرنوم'+(isNto?'، ادرس یا شمیره':'')+')..." value="'+escapeHtml(state.userSearch[targetRole])+'"><span class="search-icon">&#128269;</span></div>' : '')+
+        (fullList.length ? '<div class="search-row"><input id="nu-search" type="text" placeholder="د '+roleLabel+' لټون (یوزرنوم'+(isNto?'، ادرس یا شمیره':'')+')..." value="'+escapeHtml(state.userSearch[targetRole])+'"><span class="search-icon">'+uiIcon('search')+'</span></div>' : '')+
         '<div id="nu-list"></div><div id="nu-pager"></div></div>';
 
     function syncUserDraft(){
@@ -2881,9 +2997,9 @@
           (isNto ? '<td data-label="مشتري-ادرس">'+escapeHtml(u.address||'—')+'</td><td data-label="اړیکې-شمیره">'+escapeHtml(u.contact||'—')+'</td><td data-label="جوړونکی">'+escapeHtml(u.createdBy||'—')+'</td>' : '')+
           '<td data-label="حالت">'+statusBadge(u.status==='enabled'?'enabled':(u.status||'disabled'))+(u.adminReviewComment ? '<div class="small-muted" style="margin-top:5px;">'+escapeHtml(u.adminReviewComment)+'</div>' : '')+'</td>'+
           (canToggle ? '<td>'+ (u.status==='pending_admin' ? '<button class="btn btn-sm btn-ok" data-approve-user="'+u.username+'">تایید</button> <button class="btn btn-sm btn-danger" data-reject-user="'+u.username+'">رد</button>' : '<button class="btn btn-sm '+(u.status==='enabled'?'btn-danger':'btn-ok')+'" data-toggle="'+u.username+'">'+(u.status==='enabled'?'غیر فعالول':'فعالول')+'</button>') +'</td>' : (viewerRole==='manager' && isNto && u.status==='rejected_admin' ? '<td><button class="btn btn-sm btn-info" data-resubmit-user="'+u.username+'">بیا ځلې اډمین ته لیږل</button></td>' : ''))+
-          (canDelete ? '<td><button class="icon-btn-sm" data-edit-user="'+u.username+'" title="ایډیټ">&#9998;</button></td>' : '')+
-          (canSeeInfo ? '<td><button class="icon-btn-sm" data-info-user="'+u.username+'" title="معلومات">&#128065;</button></td>' : '')+
-          (canDelete ? '<td><button class="icon-btn-sm" data-delete-user="'+u.username+'" title="ډیلیټ">&#128465;</button></td>' : '')+
+          (canDelete ? '<td><button class="icon-btn-sm" data-edit-user="'+u.username+'" title="ایډیټ">'+uiIcon('edit')+'</button></td>' : '')+
+          (canSeeInfo ? '<td><button class="icon-btn-sm" data-info-user="'+u.username+'" title="معلومات">'+uiIcon('eye')+'</button></td>' : '')+
+          (canDelete ? '<td><button class="icon-btn-sm" data-delete-user="'+u.username+'" title="ډیلیټ">'+uiIcon('delete')+'</button></td>' : '')+
         '</tr>';
       }).join('')+
     '</tbody></table></div>';
@@ -2999,7 +3115,7 @@
     role=role||'admin';
     var groups=getOtherManagerSalesRows(role,role==='manager'?state.currentUser.username:null);
     if(headerRow){
-      headerRow.innerHTML='<div><h2>'+sectionTitle('manager_sales')+'</h2></div><div class="header-actions"><button class="icon-btn" id="other-mgr-report-export" title="اکسیل ډانلوډ">&#128190;</button></div>';
+      headerRow.innerHTML='<div><h2>'+sectionTitle('manager_sales')+'</h2></div><div class="header-actions"><button class="icon-btn" id="other-mgr-report-export" title="اکسیل ډانلوډ">'+uiIcon('download')+'</button></div>';
       document.getElementById('other-mgr-report-export').onclick=function(){exportOtherManagerSales(groups);};
     }
     if(!groups.length){body.innerHTML='<div class="card"><div class="empty-state">تر اوسه د نورو مدیرانو د مشتریانو لپاره ثبت شوي فروشات نشته.</div></div>';return;}
@@ -3007,7 +3123,7 @@
       return '<div class="card" style="padding-top:16px;">'+
         '<h4 style="margin-bottom:14px;border-bottom:2px solid var(--accent);padding-bottom:10px;">'+escapeHtml(g.actor)+'</h4>'+
         '<div style="overflow-x:auto;"><table><thead><tr><th>مدير</th><th>د فعاله شويو بنډلونو شمير</th><th>فروشات</th><th></th></tr></thead><tbody>'+
-        g.rows.map(function(r){return '<tr><td data-label="مدير">'+escapeHtml(r.username)+'</td><td data-label="د فعاله شويو بنډلونو شمير">'+r.count+'</td><td data-label="فروشات">'+r.total.toLocaleString()+' افغانۍ</td><td><button class="icon-btn-sm" data-other-mgr-reset="'+escapeHtml(r.username)+'" title="ریسیټ">&#8635;</button></td></tr>';}).join('')+
+        g.rows.map(function(r){return '<tr><td data-label="مدير">'+escapeHtml(r.username)+'</td><td data-label="د فعاله شويو بنډلونو شمير">'+r.count+'</td><td data-label="فروشات">'+r.total.toLocaleString()+' افغانۍ</td><td><button class="icon-btn-sm" data-other-mgr-reset="'+escapeHtml(r.username)+'" title="ریسیټ">'+uiIcon('reset')+'</button></td></tr>';}).join('')+
         '</tbody></table></div></div>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('[data-other-mgr-reset]'),function(btn){btn.onclick=function(){
@@ -3033,7 +3149,7 @@
             '<div style="font-size:28px;font-weight:800;" dir="ltr">'+rate+'%</div>'+
             '<div class="small-muted" style="margin-top:4px;">اوسنی ټاکل شوی کميشن</div>'+
           '</div>'+
-          '<button class="icon-btn" id="commission-edit" title="ایډیټ">&#9998;</button>'+
+          '<button class="icon-btn" id="commission-edit" title="ایډیټ">'+uiIcon('edit')+'</button>'+
         '</div>'+
         '<div id="commission-edit-box" style="display:none;margin-top:18px;">'+
           '<div class="field"><label>کميشن فیصدي</label><input id="commission-input" type="number" min="0" max="100" step="0.01" inputmode="decimal" value="'+rate+'"></div>'+
@@ -3108,7 +3224,7 @@
       headerRow.innerHTML =
         '<div><h2>'+sectionTitle('nto_report')+'</h2></div>'+
         '<div class="header-actions">'+
-          '<button class="icon-btn" id="nto-report-export" title="اکسیل ډاونلوډ">&#128190;</button>'+
+          '<button class="icon-btn" id="nto-report-export" title="اکسیل ډاونلوډ">'+uiIcon('download')+'</button>'+
         '</div>';
       document.getElementById('nto-report-export').onclick = function(){
         if(!ntoUsers.length){ showToast('هیڅ معلومات نشته چې ډاونلوډ شي.'); return; }
@@ -3148,7 +3264,7 @@
       '</tr></thead><tbody>'+
       rows.map(function(r){
         return '<tr><td data-label="مشتري">'+escapeHtml(r.username)+'</td><td data-label="فعاله شويو بنډلونو شمير">'+r.count+'</td><td data-label="فروشات">'+r.total.toLocaleString()+' افغانۍ</td><td data-label="کميشن">'+r.commission.toLocaleString()+' افغانۍ</td>'+
-          (role==='admin' ? '<td><button class="icon-btn-sm" data-nto-reset="'+escapeHtml(r.username)+'" title="ریسیټ">&#8635;</button></td>' : '')+'</tr>';
+          (role==='admin' ? '<td><button class="icon-btn-sm" data-nto-reset="'+escapeHtml(r.username)+'" title="ریسیټ">'+uiIcon('reset')+'</button></td>' : '')+'</tr>';
       }).join('')+
     '</tbody></table></div></div>';
 
@@ -3186,7 +3302,7 @@
         headerRow.innerHTML =
           '<div><h2>'+sectionTitle('report')+'</h2></div>'+
           '<div class="header-actions">'+
-            '<button class="icon-btn" id="mgr-report-export" title="اکسیل ډاونلوډ">&#128190;</button>'+
+            '<button class="icon-btn" id="mgr-report-export" title="اکسیل ډاونلوډ">'+uiIcon('download')+'</button>'+
           '</div>';
         document.getElementById('mgr-report-export').onclick = function(){
           if(!managers.length){ showToast('هیڅ معلومات نشته چې ډاونلوډ شي.'); return; }
@@ -3219,7 +3335,7 @@
           '</tr></thead><tbody>'+
           rows.map(function(r){
             return '<tr><td data-label="مدير">'+escapeHtml(r.username)+'</td><td data-label="د فعاله شويو بنډلونو شمير">'+r.count+'</td><td data-label="فروشات">'+r.total.toLocaleString()+' افغانۍ</td>'+
-              '<td><button class="icon-btn-sm" data-mgr-reset="'+escapeHtml(r.username)+'" title="ریسیټ">&#8635;</button></td></tr>';
+              '<td><button class="icon-btn-sm" data-mgr-reset="'+escapeHtml(r.username)+'" title="ریسیټ">'+uiIcon('reset')+'</button></td></tr>';
           }).join('')+
         '</tbody></table></div></div>';
 
@@ -3266,7 +3382,7 @@
         '<div class="card">'+
           '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">'+
             '<h4 style="margin:0;">د نورو مدیرانو د مشتریانو فروشات</h4>'+ 
-            '<button class="icon-btn" id="manager-other-sales-export" title="د نورو مدیرانو راپور اکسیل کې ډانلوډ کړئ">&#128190;</button>'+ 
+            '<button class="icon-btn" id="manager-other-sales-export" title="د نورو مدیرانو راپور اکسیل کې ډانلوډ کړئ">'+uiIcon('download')+'</button>'+ 
           '</div>'+ 
           (otherRows.length ?
             '<div style="overflow-x:auto;"><table><thead><tr><th>مدير</th><th>د فعاله شويو بنډلونو شمير</th><th>فروشات</th></tr></thead><tbody>'+ 
