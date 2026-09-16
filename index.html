@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.9">
+<meta name="app-build-version" content="0.10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -321,14 +321,17 @@
   .mt-user-btn .mt-user-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:105px;}
   .mt-user-btn .mt-caret{font-size:10px;color:var(--sidebar-text-dim);flex:none;}
   .mt-user-dropdown{
-    position:absolute;top:calc(100% + 8px);left:0;
-    background:#fff;color:var(--ink);border-radius:10px;min-width:200px;
+    position:absolute;top:calc(100% + 8px);left:auto;right:0;
+    background:#fff;color:var(--ink);border-radius:10px;
+    width:230px;min-width:0;max-width:calc(100vw - 24px);
+    box-sizing:border-box;
     box-shadow:0 14px 34px rgba(0,0,0,.28);padding:8px;z-index:70;
     display:flex;flex-direction:column;gap:2px;
   }
   .mt-user-item{
     background:transparent;border:none;text-align:right;padding:10px 12px;border-radius:7px;
     font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;
+    width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;
   }
   .mt-user-item:hover{background:var(--bg);}
   .mt-user-item-danger{color:var(--danger);}
@@ -457,6 +460,13 @@
   .shell > .main{width:100% !important;max-width:none !important;}
   .sidebar,.sidebar-backdrop,.hamburger-btn{display:none !important;}
 
+
+<style>
+/* User dropdown viewport fix: keep the complete menu visible on desktop and mobile. */
+.mt-user-wrap{position:relative;overflow:visible;}
+.mt-user-dropdown{left:auto !important;right:0 !important;max-width:calc(100vw - 24px) !important;box-sizing:border-box;}
+.mt-user-item{width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;}
+</style>
 </style>
 </head>
 <body>
