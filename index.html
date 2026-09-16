@@ -392,6 +392,306 @@
     }
     table td:not([data-label]):before, table td[data-label=""]:before{content:none;}
   }
+
+  /* ---------- Responsive dashboard design ---------- */
+  .shell{
+    display:flex;
+    flex-direction:row;
+    direction:ltr;
+    min-height:calc(100vh - 68px);
+  }
+  .mobile-topbar{
+    height:68px;
+    min-height:68px;
+    padding:0 22px;
+    background:#fff;
+    color:var(--ink);
+    border-bottom:1px solid #E8EBF0;
+    box-shadow:0 1px 8px rgba(20,30,45,.04);
+    position:sticky;
+    top:0;
+    z-index:80;
+    direction:ltr;
+  }
+  .mt-left,.mt-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:170px;
+  }
+  .mt-right{justify-content:flex-end;margin-left:auto;}
+  .mt-title{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    color:#1B2430 !important;
+    font-size:17px !important;
+    font-weight:800 !important;
+    white-space:nowrap;
+  }
+  .top-brand-mark,.mt-avatar{
+    width:38px;height:38px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .top-brand-mark{
+    background:linear-gradient(135deg,#4D79F6,#6E56E8);
+    color:#fff;
+    font-size:20px;
+    box-shadow:0 6px 14px rgba(77,121,246,.18);
+  }
+  .mt-avatar{
+    border-radius:50%;
+    background:linear-gradient(135deg,#FFD5D5,#F4B8B8);
+    color:#fff;
+    font-size:19px;
+    border:2px solid #fff;
+    box-shadow:0 2px 8px rgba(20,30,45,.10);
+  }
+  .mobile-topbar .hamburger-btn{
+    width:38px;height:38px;
+    border:1px solid #E1E5EC;
+    background:#F4F5FF;
+    color:#5C63E6;
+    border-radius:10px;
+    font-size:20px;
+  }
+  .mt-settings-btn{
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid #E2E5EB;background:#fff;color:#59616E;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:20px;
+  }
+  .mt-user-btn{
+    width:42px;height:42px;padding:0;
+    border:none;background:transparent;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .mt-user-btn .mt-user-name,.mt-user-btn .mt-caret{display:none;}
+  .mt-user-dropdown{top:48px;left:auto;right:0;}
+
+  .sidebar-backdrop{display:none !important;}
+  .sidebar{
+    display:flex;
+    position:sticky;
+    top:68px;
+    left:0;
+    right:auto;
+    width:64px;
+    height:calc(100vh - 68px);
+    flex:none;
+    padding:16px 9px;
+    background:#fff;
+    color:#6E7785;
+    border-right:1px solid #E9ECF1;
+    box-shadow:1px 0 8px rgba(20,30,45,.035);
+    z-index:50;
+    overflow-y:auto;
+    direction:rtl;
+    transition:width .18s ease;
+  }
+  .sidebar .brand{display:flex;justify-content:center;padding:0 0 15px;margin:0 0 13px;border-bottom:1px solid #EEF0F4;}
+  .sidebar .brand .mark{display:none;}
+  .sidebar .brand b,.sidebar .role-tag,.sidebar .spacer,.sidebar .user-box{display:none;}
+  .nav-item{
+    position:relative;
+    width:46px;height:46px;
+    margin:0 auto 8px;
+    padding:0;
+    border-radius:13px;
+    justify-content:center;
+    color:#697383;
+    background:transparent;
+    font-size:0;
+  }
+  .nav-item > span:first-child{display:none;}
+  .nav-item:before{
+    content:'';
+    width:22px;height:22px;
+    display:block;
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:22px 22px;
+    opacity:.92;
+  }
+  .nav-item[data-sec="managers"]:before{content:'👥';font-size:21px;background:none;}
+  .nav-item[data-sec="ntos"]:before{content:'♙';font-size:23px;background:none;}
+  .nav-item[data-sec="sales"]:before{content:'▣';font-size:23px;background:none;}
+  .nav-item[data-sec="report"]:before{content:'▥';font-size:23px;background:none;}
+  .nav-item[data-sec="nto_report"]:before{content:'▤';font-size:23px;background:none;}
+  .nav-item[data-sec="manager_sales"]:before{content:'◫';font-size:23px;background:none;}
+  .nav-item[data-sec="rolls"]:before{content:'✉';font-size:22px;background:none;}
+  .nav-item[data-sec="complaints"]:before{content:'♡';font-size:25px;background:none;}
+  .nav-item[data-sec="bundle"]:before{content:'▧';font-size:23px;background:none;}
+  .nav-item[data-sec="deactivate"]:before{content:'⌫';font-size:23px;background:none;}
+  .nav-item.active{
+    background:#EEF0FF;
+    color:#5D64E9;
+    box-shadow:inset 3px 0 0 #6A6FF2;
+  }
+  .nav-badge{
+    position:absolute;
+    top:3px;right:3px;
+    min-width:17px;height:17px;
+    font-size:9px;
+    border:2px solid #fff;
+  }
+  .main{
+    flex:1;
+    width:calc(100% - 64px);
+    padding:34px 38px;
+    background:#F7F8FA;
+    direction:rtl;
+    min-width:0;
+  }
+  .dashboard-home{
+    max-width:1100px;
+    margin:0 auto;
+  }
+  .dashboard-welcome{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:16px;margin:0 0 22px;
+  }
+  .dashboard-welcome h2{margin:0;font-size:22px;font-weight:800;color:#1B2430;}
+  .dashboard-welcome p{margin:5px 0 0;color:#8A94A3;font-size:12.5px;}
+  .dashboard-cards{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:16px;
+  }
+  .dashboard-card{
+    min-height:112px;
+    border:1px solid #E7EAF0;
+    border-radius:17px;
+    background:#fff;
+    padding:17px 15px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    text-align:right;
+    cursor:pointer;
+    font-family:inherit;
+    color:#1B2430;
+    box-shadow:0 2px 8px rgba(25,35,50,.025);
+    transition:transform .12s,box-shadow .12s,border-color .12s;
+  }
+  .dashboard-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 22px rgba(25,35,50,.08);
+    border-color:#D9DDF0;
+  }
+  .dashboard-card:active{transform:scale(.985);}
+  .dashboard-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .dashboard-card-icon{
+    width:40px;height:40px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:21px;flex:none;
+  }
+  .dashboard-card-count{
+    min-width:24px;height:24px;padding:0 7px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    background:#FFF1F0;color:#D95A4E;font-size:11px;font-weight:800;
+  }
+  .dashboard-card h3{margin:12px 0 0;font-size:14px;font-weight:800;}
+  .dashboard-card p{margin:3px 0 0;color:#8A94A3;font-size:11.5px;line-height:1.6;}
+  .dashboard-card[data-sec="managers"] .dashboard-card-icon{background:#EAF0FF;color:#5475EE;}
+  .dashboard-card[data-sec="ntos"] .dashboard-card-icon{background:#EAF8F2;color:#27A77B;}
+  .dashboard-card[data-sec="sales"] .dashboard-card-icon{background:#FFF1E4;color:#F28A22;}
+  .dashboard-card[data-sec="report"] .dashboard-card-icon{background:#EAF8FB;color:#31AFC6;}
+  .dashboard-card[data-sec="nto_report"] .dashboard-card-icon{background:#FCEAF4;color:#E35D9B;}
+  .dashboard-card[data-sec="manager_sales"] .dashboard-card-icon{background:#F0EAFF;color:#8062E8;}
+  .dashboard-card[data-sec="rolls"] .dashboard-card-icon{background:#FFF4DE;color:#E6A11B;}
+  .dashboard-card[data-sec="complaints"] .dashboard-card-icon{background:#FCEAF3;color:#DF4D94;}
+  .dashboard-card[data-sec="bundle"] .dashboard-card-icon{background:#EAF0FF;color:#5575EF;}
+  .dashboard-card[data-sec="deactivate"] .dashboard-card-icon{background:#F1EEFF;color:#795CE6;}
+  .dashboard-back-btn{
+    display:none;
+    margin-left:8px;
+  }
+  .section-page-header{
+    display:flex;align-items:center;gap:8px;
+  }
+
+  /* Desktop: hamburger remains visible; clicking it expands the icon rail. */
+  .sidebar.mobile-open{
+    width:214px;
+  }
+  .sidebar.mobile-open .brand{justify-content:flex-start;padding-right:5px;}
+  .sidebar.mobile-open .brand b{display:block;font-size:14px;color:#273142;}
+  .sidebar.mobile-open .nav-item{width:100%;justify-content:flex-start;padding:0 12px;font-size:13.5px;gap:10px;}
+  .sidebar.mobile-open .nav-item > span:first-child{display:block;}
+  .sidebar.mobile-open .nav-item:before{display:block;font-size:20px;min-width:24px;text-align:center;}
+  body.force-desktop .sidebar{display:flex !important;position:sticky !important;top:68px !important;left:0 !important;right:auto !important;width:64px !important;height:calc(100vh - 68px) !important;flex:none !important;padding:16px 9px !important;background:#fff !important;color:#697383 !important;border-right:1px solid #E9ECF1 !important;box-shadow:1px 0 8px rgba(20,30,45,.035) !important;}
+  body.force-desktop .shell{display:flex !important;flex-direction:row !important;}
+  body.force-desktop .main{padding:34px 38px !important;width:calc(100% - 64px) !important;}
+  body.force-desktop{min-width:900px;}
+
+  @media (max-width:860px){
+    .mobile-topbar{
+      height:76px;min-height:76px;
+      padding:0 16px;
+      border-bottom:0;
+      background:#F7F6FC;
+      box-shadow:none;
+    }
+    .mt-left{min-width:50px;}
+    .mt-left .top-brand-mark,.mt-left .hamburger-btn{display:none;}
+    .mt-title{font-size:22px !important;color:#171923 !important;}
+    .mt-right{min-width:88px;gap:8px;}
+    .mt-settings-btn{display:flex;width:38px;height:38px;background:#F7F6FC;border:0;font-size:23px;}
+    .mt-avatar{width:44px;height:44px;}
+    .mt-user-btn{width:44px;height:44px;}
+    .mt-user-dropdown{top:52px;right:0;}
+    .sidebar{display:none !important;}
+    .shell{display:block;min-height:calc(100vh - 76px);}
+    .main{
+      width:100%;
+      padding:0 16px 30px;
+      background:#F7F6FC;
+      overflow:visible;
+    }
+    .dashboard-home{max-width:none;}
+    .dashboard-welcome{
+      display:none;
+    }
+    .dashboard-cards{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .dashboard-card{
+      min-height:122px;
+      border-radius:16px;
+      padding:14px 11px;
+    }
+    .dashboard-card-icon{width:40px;height:40px;border-radius:12px;font-size:21px;}
+    .dashboard-card h3{font-size:16px;margin-top:9px;}
+    .dashboard-card p{font-size:11.5px;}
+    .dashboard-card-count{height:22px;min-width:22px;}
+    .main-header{
+      margin:0 0 14px;
+      padding:0 2px;
+      min-height:48px;
+    }
+    .main-header h2{font-size:18px;}
+    .dashboard-back-btn{
+      display:inline-flex !important;
+      width:38px;height:38px;padding:0;
+      border-radius:11px;
+      align-items:center;justify-content:center;
+      background:#fff;color:#59616E;border:1px solid #E2E5EB;
+      font-size:19px;
+    }
+    .section-page-header{flex:1;align-items:center;}
+    .card{border-radius:15px;padding:16px;margin-bottom:13px;}
+    .row .field{min-width:0;}
+    table tr{border-radius:14px;}
+  }
+
+  @media (min-width:861px){
+    .mt-settings-btn{display:none;}
+  }
+
 </style>
 </head>
 <body>
@@ -1145,9 +1445,8 @@
   function renderDashboard(root){
     var role = state.currentUser.role;
     var menu = MENUS[role];
-    if(!state.section || (!menu.find(function(m){return m.key===state.section;}) && !(role==='admin' && state.section==='commission'))){
-      state.section = menu[0].key;
-    }
+    var valid = state.section===null || menu.some(function(m){return m.key===state.section;}) || (role==='admin' && state.section==='commission');
+    if(!valid) state.section = null;
 
     var actionableCount = state.bundles.filter(function(b){
       if(b.status!=='pending' && b.status!=='resubmit') return false;
@@ -1158,6 +1457,23 @@
       return b.ntoUsername===state.currentUser.username && (b.status==='approved'||b.status==='rejected') && !b.ntoSeen;
     }).length;
 
+    var iconMap = {
+      managers:'👥', ntos:'♙', sales:'▣', report:'▥', nto_report:'▤',
+      manager_sales:'◫', rolls:'✉', complaints:'♡', bundle:'▧', deactivate:'⌫'
+    };
+    var descMap = {
+      managers:'د مدیرانو حسابونه',
+      ntos:'د مشتریانو حسابونه',
+      sales:'بنډلونه او حالتونه',
+      report:'فروشات او عاید',
+      nto_report:'د مشتریانو راپور',
+      manager_sales:'د مدیرانو فروشات',
+      rolls:'پیغامونه واستوئ',
+      complaints:'شکایتونه او نظرونه',
+      bundle:'نوی بنډل واستوئ',
+      deactivate:'بنډل غیر فعال کړئ'
+    };
+
     var navHtml = menu.map(function(m){
       var badge = '';
       if(m.key==='sales'){
@@ -1167,8 +1483,22 @@
           badge = '<span class="nav-badge">'+myUnseen+'</span>';
         }
       }
-      return '<div class="nav-item '+(state.section===m.key?'active':'')+'" data-sec="'+m.key+'">'+
+      return '<div class="nav-item '+(state.section===m.key?'active':'')+'" data-sec="'+m.key+'" title="'+escapeHtml(m.label)+'">'+
         '<span>'+m.label+'</span>'+badge+'</div>';
+    }).join('');
+
+    var cardsHtml = menu.map(function(m){
+      var count = '';
+      if(m.key==='sales' && ((role==='admin'||role==='manager') ? actionableCount>0 : myUnseen>0)){
+        var n = (role==='admin'||role==='manager') ? actionableCount : myUnseen;
+        count = '<span class="dashboard-card-count">'+n+'</span>';
+      }
+      return '<button type="button" class="dashboard-card" data-sec="'+m.key+'">'+
+        '<div class="dashboard-card-top">'+
+          '<span class="dashboard-card-icon">'+iconMap[m.key]+'</span>'+count+
+        '</div>'+
+        '<div><h3>'+escapeHtml(m.label)+'</h3><p>'+escapeHtml(descMap[m.key]||'')+'</p></div>'+
+      '</button>';
     }).join('');
 
     var canChangePw = role==='manager' || role==='admin';
@@ -1180,23 +1510,29 @@
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">&#128273; پاسورډ بدلول</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">&#128176; کميشن ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">&#128274; د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
-          '<div class="mt-user-item" style="font-size:12px;opacity:.75;cursor:default;">ویب ورژن: '+escapeHtml(APP_BUILD_VERSION)+'</div>'+          '<button class="mt-user-item mt-user-item-danger" id="um-logout">&#128682; وتل (Logout)</button>'+
+          '<div class="mt-user-item" style="font-size:12px;opacity:.75;cursor:default;">ویب ورژن: '+escapeHtml(APP_BUILD_VERSION)+'</div>'+
+          '<button class="mt-user-item mt-user-item-danger" id="um-logout">&#128682; وتل (Logout)</button>'+
         '</div>';
     }
 
     root.innerHTML =
       '<div class="mobile-topbar">'+
-        '<button class="hamburger-btn" id="mobile-menu-btn">&#9776;</button>'+
-        '<span class="mt-title">روشن-نزديک شدن</span>'+
-        '<div class="mt-user-wrap" id="mt-user-wrap">'+
-          '<button class="mt-user-btn" id="mt-user-btn"><span class="mt-user-name">'+escapeHtml(state.currentUser.username)+'</span><span class="mt-caret">&#9662;</span></button>'+
-          userMenuHtml+
+        '<div class="mt-left">'+
+          '<div class="top-brand-mark">&#128100;</div>'+
+          '<button class="hamburger-btn" id="mobile-menu-btn" title="مینو">&#9776;</button>'+
+        '</div>'+
+        '<span class="mt-title">روشن</span>'+
+        '<div class="mt-right">'+
+          '<button class="mt-settings-btn" id="mt-settings-btn" title="تنظیمات">&#9881;</button>'+
+          '<div class="mt-user-wrap" id="mt-user-wrap">'+
+            '<button class="mt-user-btn" id="mt-user-btn" title="'+escapeHtml(state.currentUser.username)+'"><span class="mt-avatar">&#128100;</span><span class="mt-user-name">'+escapeHtml(state.currentUser.username)+'</span><span class="mt-caret">&#9662;</span></button>'+
+            userMenuHtml+
+          '</div>'+
         '</div>'+
       '</div>'+
       '<div class="shell">'+
-        '<div class="sidebar-backdrop'+(state.mobileMenuOpen?' show':'')+'" id="sidebar-backdrop"></div>'+
-        '<div class="sidebar'+(state.mobileMenuOpen?' mobile-open':'')+'">'+
-          '<div class="brand"><div class="mark"></div><b>روشن-نزديک شدن</b></div>'+
+        '<div class="sidebar">'+
+          '<div class="brand"><div class="mark"></div><b>روشن</b></div>'+
           '<div class="role-tag">'+ROLE_LABEL[role]+'</div>'+
           '<div style="display:flex;flex-direction:column;gap:2px;flex:1;">'+navHtml+'</div>'+
           '<div class="spacer"></div>'+
@@ -1208,30 +1544,40 @@
     if(mmBtn){
       mmBtn.onclick = function(){
         state.mobileMenuOpen = !state.mobileMenuOpen;
-        renderDashboard(document.getElementById('app'));
+        var sb = document.querySelector('.sidebar');
+        if(sb) sb.classList.toggle('mobile-open', state.mobileMenuOpen);
       };
     }
-    var backdrop = document.getElementById('sidebar-backdrop');
-    if(backdrop){
-      backdrop.onclick = function(){
-        state.mobileMenuOpen = false;
-        renderDashboard(document.getElementById('app'));
-      };
+
+    function openSection(sec){
+      if(!sec) return;
+      state.section = sec;
+      state.mobileMenuOpen = false;
+      if(history && history.pushState){
+        history.pushState({roshanPortal:true, section:sec}, '', window.location.href);
+      }
+      render();
     }
 
     Array.prototype.forEach.call(document.querySelectorAll('.nav-item'), function(el){
       el.onclick = function(){
-        state.section = el.getAttribute('data-sec');
-        state.mobileMenuOpen = false;
-        if(state.section==='sales' && role==='nto'){
-          state.bundles.forEach(function(b){
-            if(b.ntoUsername===state.currentUser.username && (b.status==='approved'||b.status==='rejected')) b.ntoSeen = true;
-          });
-          persistBundles();
-        }
-        render();
+        openSection(el.getAttribute('data-sec'));
       };
     });
+    Array.prototype.forEach.call(document.querySelectorAll('.dashboard-card'), function(el){
+      el.onclick = function(){
+        openSection(el.getAttribute('data-sec'));
+      };
+    });
+
+    var settingsBtn = document.getElementById('mt-settings-btn');
+    if(settingsBtn){
+      settingsBtn.onclick = function(e){
+        e.stopPropagation();
+        state.userMenuOpen = !state.userMenuOpen;
+        renderDashboard(document.getElementById('app'));
+      };
+    }
 
     var userBtn = document.getElementById('mt-user-btn');
     if(userBtn){
@@ -1262,8 +1608,7 @@
     if(umCommission){
       umCommission.onclick = function(){
         state.userMenuOpen = false;
-        state.section = 'commission';
-        render();
+        openSection('commission');
       };
     }
     var umForceLogout = document.getElementById('um-force-logout');
@@ -1292,7 +1637,65 @@
     renderSection(document.getElementById('main-area'));
   }
 
-  function sectionTitle(key){
+  function renderHomeSection(body, role){
+    var menu = MENUS[role] || [];
+    var actionableCount = state.bundles.filter(function(b){
+      if(b.status!=='pending' && b.status!=='resubmit') return false;
+      if(role==='manager') return isBundleClaimableByManager(b, state.currentUser.username);
+      return true;
+    }).length;
+    var myUnseen = state.bundles.filter(function(b){
+      return b.ntoUsername===state.currentUser.username && (b.status==='approved'||b.status==='rejected') && !b.ntoSeen;
+    }).length;
+    var iconMap = {
+      managers:'👥', ntos:'♙', sales:'▣', report:'▥', nto_report:'▤',
+      manager_sales:'◫', rolls:'✉', complaints:'♡', bundle:'▧', deactivate:'⌫'
+    };
+    var descMap = {
+      managers:'د مدیرانو حسابونه',
+      ntos:'د مشتریانو حسابونه',
+      sales:'بنډلونه او حالتونه',
+      report:'فروشات او عاید',
+      nto_report:'د مشتریانو راپور',
+      manager_sales:'د مدیرانو فروشات',
+      rolls:'پیغامونه واستوئ',
+      complaints:'شکایتونه او نظرونه',
+      bundle:'نوی بنډل واستوئ',
+      deactivate:'بنډل غیر فعال کړئ'
+    };
+    body.innerHTML =
+      '<div class="dashboard-home">'+
+        '<div class="dashboard-welcome">'+
+          '<div><h2>Dashboard</h2><p>'+escapeHtml(ROLE_LABEL[role]||'')+' — خپل اړوند خدمت وټاکئ</p></div>'+
+        '</div>'+
+        '<div class="dashboard-cards">'+
+          menu.map(function(m){
+            var count='';
+            if(m.key==='sales'){
+              var n=(role==='admin'||role==='manager')?actionableCount:myUnseen;
+              if(n>0) count='<span class="dashboard-card-count">'+n+'</span>';
+            }
+            return '<button type="button" class="dashboard-card" data-sec="'+m.key+'">'+
+              '<div class="dashboard-card-top"><span class="dashboard-card-icon">'+iconMap[m.key]+'</span>'+count+'</div>'+
+              '<div><h3>'+escapeHtml(m.label)+'</h3><p>'+escapeHtml(descMap[m.key]||'')+'</p></div>'+
+            '</button>';
+          }).join('')+
+        '</div>'+
+      '</div>';
+
+    Array.prototype.forEach.call(body.querySelectorAll('.dashboard-card'), function(el){
+      el.onclick=function(){
+        var sec=el.getAttribute('data-sec');
+        state.section=sec;
+        if(history && history.pushState){
+          history.pushState({roshanPortal:true, section:sec}, '', window.location.href);
+        }
+        render();
+      };
+    });
+  }
+
+function sectionTitle(key){
     var map = {bundle:'نوى بنډل-استول', deactivate:'بنډل-غيري فعالول', managers:'مدير-حسابونه', ntos:'مشتري-اضافه کول', sales:'بنډلونو-حالت', report:'فروشاتو -راپور', nto_report:'مشتري-راپور', manager_sales:'مديرانو فروشات', rolls:'پيغام-استول', complaints:'راليږل شوي شکایتونه', commission:'کميشن ټاکنه'};
     return map[key] || '';
   }
@@ -1348,9 +1751,24 @@
 
   function renderSection(main){
     var role = state.currentUser.role;
-    main.innerHTML = '<div class="main-header" id="main-header-row"><div><h2>'+sectionTitle(state.section)+'</h2></div></div><div id="sec-body"></div>';
+    if(!state.section){
+      main.innerHTML = '<div id="sec-body"></div>';
+      renderHomeSection(document.getElementById('sec-body'), role);
+      return;
+    }
+    main.innerHTML = '<div class="main-header" id="main-header-row"><div class="section-page-header"><button class="icon-btn dashboard-back-btn" id="dashboard-back-btn" title="ډیشبورډ">&#8594;</button><h2>'+sectionTitle(state.section)+'</h2></div></div><div id="sec-body"></div>';
     var headerRow = document.getElementById('main-header-row');
     var body = document.getElementById('sec-body');
+    var backBtn = document.getElementById('dashboard-back-btn');
+    if(backBtn){
+      backBtn.onclick = function(){
+        state.section = null;
+        if(history && history.pushState){
+          history.pushState({roshanPortal:true, section:'home'}, '', window.location.href);
+        }
+        render();
+      };
+    }
 
     if(state.section==='bundle' && role==='nto') return renderBundleSection(body);
     if(state.section==='deactivate' && role==='nto') return renderDeactivateSection(body);
@@ -1394,56 +1812,28 @@
     });
 
     document.getElementById('bd-submit').onclick = function(){
-      var btn = document.getElementById('bd-submit');
       var v1 = f1.value.trim();
       var v2 = f2.value.trim();
       if(!v1 || !v2){ showToast('مهرباني وکړئ دواړه خانې ډکې کړئ.'); return; }
-      if(btn.disabled) return;
-
-      // The UI is updated immediately. The Firestore transaction runs in the
-      // background so a slow network never makes the customer wait.
       var entry = {
         id: uid(),
         ntoUsername: state.currentUser.username,
         field1:v1, field2:v2,
-        status:'pending',
-        createdAt:Date.now(),
-        waitStartAt:Date.now(),
-        updatedAt:Date.now(),
+        status: 'pending',
+        createdAt: Date.now(),
+        waitStartAt: Date.now(),
         comment:null, actionedBy:null, actionedAt:null, processingBy:null,
-        ntoSeen:true
+        ntoSeen: true
       };
-
-      btn.disabled = true;
-      btn.style.opacity = '.6';
       state.bundles.unshift(entry);
       state.bundleDraft = {field1:'', field2:''};
-      render();
-      showToast('بنډل لېږل کېږي...');
-
-      var bundlesRef = db.collection('appdata').doc('bundles');
-      db.runTransaction(function(tx){
-        return tx.get(bundlesRef).then(function(snap){
-          var current = snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
-          // Prevent the same generated ID from ever being inserted twice.
-          if(!current.some(function(x){return x && x.id===entry.id;})) current.unshift(entry);
-          tx.set(bundlesRef, {list:current}, {merge:true});
-        });
-      }).then(function(){
-        showToast('بنډل په بریالیتوب سره واستول شو.');
-        state.section='sales';
+      persistBundles().then(function(){
+        showToast('بنډل واستول شو، اوس د تمې په حالت کې دی.');
+        state.section = 'sales';
         renderDashboard(document.getElementById('app'));
-      }).catch(function(err){
-        console.error(err);
-        // Remove only this failed local entry. Never overwrite the server list.
-        state.bundles = state.bundles.filter(function(x){return x.id!==entry.id;});
-        btn.disabled = false;
-        btn.style.opacity = '';
-        state.bundleDraft = {field1:v1, field2:v2};
-        render();
-        showToast('بنډل ونه لېږل شو؛ مهرباني وکړئ بیا هڅه وکړئ.');
       });
     };
+
     var list = document.getElementById('bd-list');
     if(!myBundles.length){
       list.innerHTML = '<div class="empty-state">تر اوسه هیڅ بنډل نه دی استول شوی.</div>';
@@ -1897,7 +2287,7 @@
     if(!b) return;
     if(b.status!=='pending' && b.status!=='resubmit' && b.status!=='in_process') return;
     if(state.currentUser.role==='manager' && b.status==='in_process'){
-      showToast('دا بنډل اوس د '+(b.processingBy||'بل مدیر')+' تر پروسس لاندې دی.');
+      showToast('دا بنډل اوس د '+(b.processingBy||'بل مدیر')+' تر پروسس لاندې دی. لومړی باید حالت بیا د انتظار حالت ته راوګرځي.');
       return;
     }
     if(state.currentUser.role==='manager' && (b.status==='pending'||b.status==='resubmit') && !isBundleClaimableByManager(b, state.currentUser.username)){
@@ -1905,71 +2295,46 @@
       showToast('دا بنډل لومړی د '+ownMgr+' لپاره خوندي دی، مهرباني وکړئ لږ صبر وکړئ.');
       return;
     }
-
-    var previousStatus = b.status==='in_process' ? (b.prevStatusBeforeProcess||'pending') : b.status;
-    // A local lock stops double-clicks, while the Firestore transaction below
-    // is the authoritative claim. No whole bundle array is ever written here.
-    if(state.pendingBundleClaims && state.pendingBundleClaims[bundleId]) return;
-    if(!state.pendingBundleClaims) state.pendingBundleClaims={};
-    state.pendingBundleClaims[bundleId]=true;
-
-    // Open immediately so the manager can enter the comment without waiting.
+    // If it's already in_process (another manager started it but never
+    // finished/cancelled -- e.g. closed the tab), take it over. Use the
+    // originally-stored previous status so "لغوه کول" still reverts it
+    // correctly instead of getting stuck on 'in_process' forever.
+    var previousStatus = (b.status==='in_process') ? (b.prevStatusBeforeProcess || 'pending') : b.status;
     b.prevStatusBeforeProcess = previousStatus;
     b.status = 'in_process';
     b.processingBy = state.currentUser.username;
-    state.modal = b.type==='deactivate'
-      ? {type:'deactivate-confirm', bundleId:bundleId, previousStatus:previousStatus}
-      : {type:'process', bundleId:bundleId, previousStatus:previousStatus, draftComment:''};
+    // Open the modal immediately. Waiting for Firestore here made the status
+    // click feel slow; the database write continues in the background.
+    if(b.type==='deactivate'){
+      state.modal = {type:'deactivate-confirm', bundleId:bundleId, previousStatus:previousStatus};
+    }else{
+      state.modal = {type:'process', bundleId:bundleId, previousStatus:previousStatus, draftComment:''};
+    }
     render();
-
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
-        var list=snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
-        var live=list.find(function(x){return x && x.id===bundleId;});
-        if(!live) throw new Error('bundle-not-found');
-        if(live.status==='in_process' && live.processingBy && live.processingBy!==state.currentUser.username){ throw new Error('bundle-busy'); }
-        if(live.status!=='pending' && live.status!=='resubmit' && live.status!=='in_process') throw new Error('bundle-already-decided');
-        var prev=live.status==='in_process' ? (live.prevStatusBeforeProcess||previousStatus) : live.status;
-        live.prevStatusBeforeProcess=prev;
-        live.status='in_process';
-        live.processingBy=state.currentUser.username;
-        live.updatedAt=Date.now();
-        tx.set(bundlesRef,{list:list},{merge:true});
-      });
-    }).catch(function(err){
-      console.error(err);
+    persistBundles().catch(function(){
       var live=state.bundles.find(function(x){return x.id===bundleId;});
-      if(live){live.status=previousStatus;live.processingBy=null;live.prevStatusBeforeProcess=null;}
-      if(state.modal && state.modal.bundleId===bundleId) state.modal=null;
-      showToast(err && err.message==='bundle-busy' ? 'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.' : 'د بنډل حالت ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
+      if(live){ live.status=previousStatus; live.processingBy=null; live.prevStatusBeforeProcess=null; }
+      state.modal=null;
+      showToast('د بنډل حالت ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
       render();
-    }).finally(function(){ delete state.pendingBundleClaims[bundleId]; });
+    });
   }
 
   function closeProcessModal(){
     if(!state.modal) return;
-    var modal=state.modal;
-    var bundleId=modal.bundleId;
-    state.modal=null;
-    render();
-
-    // Revert only our own claim. This is a per-bundle transaction, so it can
-    // never write an old copy of another bundle back to Firestore.
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
-        var list=snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
-        var live=list.find(function(x){return x && x.id===bundleId;});
-        if(live && live.status==='in_process' && live.processingBy===state.currentUser.username){
-          live.status=modal.previousStatus||live.prevStatusBeforeProcess||'pending';
-          live.processingBy=null;
-          live.prevStatusBeforeProcess=null;
-          live.updatedAt=Date.now();
-          tx.set(bundlesRef,{list:list},{merge:true});
-        }
+    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
+    if(b && b.status==='in_process'){
+      b.status = state.modal.previousStatus;
+      b.processingBy = null;
+      b.prevStatusBeforeProcess = null;
+      persistBundles().then(function(){
+        state.modal = null;
+        render();
       });
-    }).catch(function(err){console.error(err);});
+    }else{
+      state.modal = null;
+      render();
+    }
   }
 
   // Confirms, then rejects the bundle immediately with the given quick-phrase
@@ -1982,118 +2347,136 @@
 
   function submitProcessDecision(decision, overrideComment){
     if(!state.modal) return;
-    var modal=state.modal;
-    var bundleId=modal.bundleId;
-    var commentEl=document.getElementById('proc-comment');
-    var comment=(overrideComment!=null)?overrideComment:(commentEl?commentEl.value.trim():'');
-    if(!comment){showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.');return;}
-    var buttons=['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
-    buttons.forEach(function(x){if(x){x.disabled=true;x.style.opacity='.6';}});
-    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
-    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
-    state.pendingBundleDecisions[bundleId]=true;
+    var commentEl = document.getElementById('proc-comment');
+    var comment = (overrideComment!=null) ? overrideComment : (commentEl ? commentEl.value.trim() : '');
+    if(!comment){ showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.'); return; }
+    var decisionBtns = ['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
+    decisionBtns.forEach(function(x){ if(x){x.disabled=true; x.style.opacity='.6';} });
 
-    var actor=state.currentUser.username;
-    var approvalAt=Date.now();
-    var approvalId=uid();
-    var amount=extractNumber(comment);
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    var totalsRef=db.collection('appdata').doc('salesTotals');
+    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
+    if(!b) return;
 
+    // IMPORTANT: determine the manager BEFORE clearing processingBy/action fields.
+    // If a manager opened the bundle, processingBy is the safest source of the
+    // manager identity. Admin approvals are assigned to the customer's manager.
+    var approvedManager = null;
+    if(decision==='approved'){
+      if(b.processingBy){
+        var processingMgr = state.users.find(function(u){
+          return u.username===b.processingBy && u.role==='manager';
+        });
+        if(processingMgr) approvedManager = processingMgr.username;
+      }
+      if(!approvedManager && b.actionedBy){
+        var actionMgr = state.users.find(function(u){
+          return u.username===b.actionedBy && u.role==='manager';
+        });
+        if(actionMgr) approvedManager = actionMgr.username;
+      }
+      if(!approvedManager) approvedManager = findAssignedManager(b.ntoUsername);
+      if(!approvedManager && state.currentUser.role==='manager') approvedManager = state.currentUser.username;
+      if(!approvedManager){
+        showToast('د دې مشتری لپاره مدیر پیدا نه شو؛ فروشات ثبت نه شول.');
+        return;
+      }
+    }
+
+    b.status = decision;
+    b.comment = comment;
+    b.actionedBy = state.currentUser.username;
+    b.actionedAt = Date.now();
+    b.processingBy = null;
+    b.prevStatusBeforeProcess = null;
+    b.ntoSeen = false;
+
+    // Update the screen immediately. Do not wait for Firestore before closing
+    // the modal: this makes Approve/Reject feel instant like a mobile app.
+    var finishedMessage = decision==='approved' ? 'بنډل فعاله شو.' : 'بنډل رد شو.';
+    state.modal = null;
+    render();
+
+    if(decision!=='approved'){
+      persistBundles().then(function(){
+        showToast('بنډل رد شو.');
+      }).catch(function(err){
+        console.error(err);
+        showToast('د بنډل د ثبت پر مهال تېروتنه وشوه.');
+      });
+      return;
+    }
+
+    var amount = extractNumber(comment);
+    var ntoUser = b.ntoUsername;
+    var totalsRef = db.collection('appdata').doc('salesTotals');
+
+    // Optimistically update the visible sales counters before the network
+    // transaction completes. The transaction below remains the source of truth.
+    if(!state.managerSales[approvedManager]) state.managerSales[approvedManager] = {total:0,count:0};
+    state.managerSales[approvedManager] = {
+      total:(Number(state.managerSales[approvedManager].total)||0) + amount,
+      count:(Number(state.managerSales[approvedManager].count)||0) + 1
+    };
+    if(ntoUser){
+      if(!state.ntoSales[ntoUser]) state.ntoSales[ntoUser] = {total:0,count:0};
+      state.ntoSales[ntoUser] = {
+        total:(Number(state.ntoSales[ntoUser].total)||0) + amount,
+        count:(Number(state.ntoSales[ntoUser].count)||0) + 1
+      };
+    }
+    showToast('بنډل فعاله شو او فروشات ثبتېږي...');
+    var bundlesRef = db.collection('appdata').doc('bundles');
+    var bundleList = state.bundles.slice();
+
+    // Save the approval and both sales reports in one Firestore transaction.
+    // Do NOT use dotted field paths such as managerSales.<username> because a
+    // username can contain characters that Firestore interprets as path syntax.
+    // Reading the whole maps and writing them back also guarantees that the
+    // number entered in the comment is actually persisted for both accounts.
     db.runTransaction(function(tx){
-      return Promise.all([tx.get(bundlesRef),tx.get(totalsRef)]).then(function(reads){
-        var bSnap=reads[0], tSnap=reads[1];
-        var list=bSnap.exists && Array.isArray((bSnap.data()||{}).list)?(bSnap.data()||{}).list:[];
-        var live=list.find(function(x){return x&&x.id===bundleId;});
-        if(!live) throw new Error('bundle-not-found');
+      return Promise.all([tx.get(totalsRef), tx.get(bundlesRef)]).then(function(reads){
+        var totalsSnap = reads[0];
+        var bundlesSnap = reads[1];
+        var totals = totalsSnap.exists ? (totalsSnap.data()||{}) : {};
+        var managerSales = totals.managerSales || {};
+        var ntoSales = totals.ntoSales || {};
 
-        // The decision is accepted only for the manager/admin who owns the
-        // current processing lock. If the claim write is still in flight, a
-        // pending/resubmit bundle may be decided by the current actor directly.
-        if(live.status==='in_process'){
-          if(live.processingBy!==actor) throw new Error('bundle-busy');
-        }else if(live.status!=='pending' && live.status!=='resubmit'){
-          throw new Error('bundle-already-decided');
+        if(!managerSales[approvedManager]) managerSales[approvedManager] = {total:0,count:0};
+        managerSales[approvedManager] = {
+          total:(Number(managerSales[approvedManager].total)||0) + amount,
+          count:(Number(managerSales[approvedManager].count)||0) + 1
+        };
+
+        if(ntoUser){
+          if(!ntoSales[ntoUser]) ntoSales[ntoUser] = {total:0,count:0};
+          ntoSales[ntoUser] = {
+            total:(Number(ntoSales[ntoUser].total)||0) + amount,
+            count:(Number(ntoSales[ntoUser].count)||0) + 1
+          };
         }
 
-        var approvedManager=null;
-        if(decision==='approved'){
-          if(state.currentUser.role==='manager') approvedManager=actor;
-          if(!approvedManager && live.processingBy){
-            var pm=state.users.find(function(u){return u.username===live.processingBy&&u.role==='manager';});
-            if(pm) approvedManager=pm.username;
-          }
-          if(!approvedManager) approvedManager=findAssignedManager(live.ntoUsername);
-          if(!approvedManager) throw new Error('manager-not-found');
-        }
-
-        live.status=decision;
-        live.comment=comment;
-        live.actionedBy=actor;
-        live.actionedAt=approvalAt;
-        live.processingBy=null;
-        live.prevStatusBeforeProcess=null;
-        live.ntoSeen=false;
-        live.updatedAt=approvalAt;
-
-        if(decision==='approved'){
-          live.approvalId=approvalId;
-          live.approvedAt=approvalAt;
-          live.approvedBy=actor;
-          live.salesAmount=amount;
-          live.salesLedgerKey=bundleId+'|'+approvalId+'|'+approvalAt;
-        }
-
-        var totals=tSnap.exists?(tSnap.data()||{}):{};
-        var managerSales=totals.managerSales||{};
-        var ntoSales=totals.ntoSales||{};
-        var ledger=totals.salesLedger||{};
-        var changedTotals=false;
-
-        if(decision==='approved'){
-          var ledgerKey=live.salesLedgerKey;
-          // Idempotency: the same approval identity can never add sales twice,
-          // even if the transaction is retried by Firestore.
-          if(!ledger[ledgerKey]){
-            if(!managerSales[approvedManager]) managerSales[approvedManager]={total:0,count:0};
-            managerSales[approvedManager]={
-              total:(Number(managerSales[approvedManager].total)||0)+amount,
-              count:(Number(managerSales[approvedManager].count)||0)+1
-            };
-            if(live.ntoUsername){
-              if(!ntoSales[live.ntoUsername]) ntoSales[live.ntoUsername]={total:0,count:0};
-              ntoSales[live.ntoUsername]={
-                total:(Number(ntoSales[live.ntoUsername].total)||0)+amount,
-                count:(Number(ntoSales[live.ntoUsername].count)||0)+1
-              };
-            }
-            ledger[ledgerKey]={bundleId:bundleId,amount:amount,manager:approvedManager,ntoUsername:live.ntoUsername||null,approvedAt:approvalAt,approvalId:approvalId};
-            changedTotals=true;
-          }
-        }
-
-        tx.set(bundlesRef,{list:list},{merge:true});
-        if(decision==='approved' && changedTotals){
-          tx.set(totalsRef,{managerSales:managerSales,ntoSales:ntoSales,salesLedger:ledger,lastApprovalAt:approvalAt},{merge:true});
-        }
+        tx.set(totalsRef, {
+          managerSales: managerSales,
+          ntoSales: ntoSales,
+          lastApprovalAt: Date.now()
+        }, {merge:true});
+        tx.set(bundlesRef, {list: bundleList}, {merge:true});
       });
     }).then(function(){
-      // Replace local copy from the transaction result without writing any
-      // other bundle. This prevents the old "previous bundle returns to
-      // pending" race completely.
-      var local=state.bundles.find(function(x){return x.id===bundleId;});
-      if(local){
-        local.status=decision; local.comment=comment; local.actionedBy=actor; local.actionedAt=approvalAt; local.processingBy=null; local.prevStatusBeforeProcess=null; local.ntoSeen=false; local.updatedAt=approvalAt;
-        if(decision==='approved'){local.approvalId=approvalId;local.approvedAt=approvalAt;local.approvedBy=actor;local.salesAmount=amount;local.salesLedgerKey=bundleId+'|'+approvalId+'|'+approvalAt;}
-      }
-      state.modal=null;
-      render();
-      showToast(decision==='approved'?'بنډل فعاله شو او فروشات ثبت شول.':'بنډل رد شو.');
+      showToast('بنډل فعاله شو او فروشات د مشتری او مدیر دواړو حسابونو ته جمع شول.');
     }).catch(function(err){
       console.error(err);
-      showToast(err&&err.message==='bundle-busy'?'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.':err&&err.message==='bundle-already-decided'?'دا بنډل مخکې لا فیصله شوی دی.':'د بنډل د ثبت پر مهال تېروتنه وشوه، بیا هڅه وکړئ.');
-      render();
-    }).finally(function(){delete state.pendingBundleDecisions[bundleId];});
+      // The server transaction is authoritative. Reload the persisted totals
+      // if the background write fails, without reopening the modal.
+      return totalsRef.get().then(function(snap){
+        var d = snap.exists ? (snap.data()||{}) : {};
+        state.managerSales = d.managerSales || {};
+        state.ntoSales = d.ntoSales || {};
+        render();
+        showToast('د فعالولو یا فروشاتو د ثبت پر مهال تېروتنه وشوه. بیا هڅه وکړئ.');
+      }).catch(function(){
+        showToast('د فعالولو یا فروشاتو د ثبت پر مهال تېروتنه وشوه. بیا هڅه وکړئ.');
+      });
+    });
   }
 
   // ---------------- DEACTIVATE-CONFIRM MODAL (admin/manager: deactivate bundles request) ----------------
@@ -2131,67 +2514,20 @@
     var commentEl = document.getElementById('resub-comment');
     var comment = commentEl ? commentEl.value.trim() : '';
     if(!comment){ showToast('مهرباني وکړئ کمینټ ولیکئ.'); return; }
-    var modal = state.modal;
-    var bundleId = modal.bundleId;
-    var b = state.bundles.find(function(x){return x.id===bundleId;});
+    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
     if(!b) return;
-    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
-    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
-    state.pendingBundleDecisions[bundleId]=true;
-
-    var now = Date.now();
-    var ntoUser = state.currentUser.username;
-    var oldStatus = b.status;
-    // Update the customer screen immediately. The database write continues in
-    // the background, so the customer does not wait for Firestore latency.
-    b.status='resubmit';
-    b.comment=comment;
-    b.actionedBy=null;
-    b.actionedAt=null;
-    b.processingBy=null;
-    b.prevStatusBeforeProcess=null;
-    b.ntoSeen=true;
-    b.waitStartAt=now;
-    b.updatedAt=now;
-    state.modal=null;
-    render();
-    showToast('بنډل بیا لېږل کېږي...');
-
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
-        var list=snap.exists && Array.isArray((snap.data()||{}).list)?(snap.data()||{}).list:[];
-        var live=list.find(function(x){return x&&x.id===bundleId;});
-        if(!live) throw new Error('bundle-not-found');
-        if(live.status!=='rejected') throw new Error('bundle-already-changed');
-        live.status='resubmit';
-        live.comment=comment;
-        live.actionedBy=null;
-        live.actionedAt=null;
-        live.processingBy=null;
-        live.prevStatusBeforeProcess=null;
-        live.ntoSeen=true;
-        live.waitStartAt=now;
-        live.updatedAt=now;
-        tx.set(bundlesRef,{list:list},{merge:true});
-      });
-    }).then(function(){
+    b.status = 'resubmit';
+    b.comment = comment;
+    b.actionedBy = null;
+    b.actionedAt = null;
+    b.processingBy = null;
+    b.ntoSeen = true;
+    b.waitStartAt = Date.now();
+    persistBundles().then(function(){
       showToast('بنډل بیا وړاندې شو.');
-    }).catch(function(err){
-      console.error(err);
-      var live=state.bundles.find(function(x){return x.id===bundleId;});
-      if(live){
-        live.status=oldStatus;
-        live.comment=comment;
-        live.actionedBy=null;
-        live.actionedAt=null;
-        live.processingBy=null;
-        live.prevStatusBeforeProcess=null;
-        live.ntoSeen=false;
-      }
-      showToast('بنډل بیا ونه لېږل شو؛ مهرباني وکړئ بیا هڅه وکړئ.');
+      state.modal = null;
       render();
-    }).finally(function(){delete state.pendingBundleDecisions[bundleId];});
+    });
   }
 
   // ---------------- account modals (logout / desktop-view / change password) ----------------
@@ -3337,13 +3673,8 @@
     state.unsubs.push(db.collection('appdata').doc('bundles').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){
         var newList = snap.data().list;
-        // Do not ring notifications from Firestore's local optimistic snapshot.
-        // The bell is triggered only after the write is acknowledged by the server,
-        // preventing a notification for a bundle that later fails to persist.
-        if(!snap.metadata || !snap.metadata.hasPendingWrites){
-          checkForNewNtoActivity(newList);
-          checkForStatusChangesForNto(newList);
-        }
+        checkForNewNtoActivity(newList);
+        checkForStatusChangesForNto(newList);
         state.bundles = newList;
         render();
       }
@@ -3568,6 +3899,31 @@
     render();
   });
 
+  // ---------------- dashboard browser history ----------------
+  // Keep the dashboard as the mobile/browser "home" so the device Back button
+  // returns from any opened page to the dashboard instead of leaving the portal.
+  function initDashboardHistory(){
+    if(!history || !history.replaceState || !window.addEventListener) return;
+    if(!history.state || !history.state.roshanPortal){
+      history.replaceState({roshanPortal:true, section:'home'}, '', window.location.href);
+    }
+    window.addEventListener('popstate', function(e){
+      if(!state.currentUser) return;
+      var sec = e.state && e.state.roshanPortal ? e.state.section : 'home';
+      state.mobileMenuOpen = false;
+      state.userMenuOpen = false;
+      if(sec==='home' || sec==null){
+        state.section = null;
+      }else{
+        var role = state.currentUser.role;
+        var menu = MENUS[role] || [];
+        var valid = menu.some(function(m){return m.key===sec;}) || (role==='admin' && sec==='commission');
+        state.section = valid ? sec : null;
+      }
+      render();
+    });
+  }
+
   // ---------------- init ----------------
   loadAll().then(function(){
     // Repair the historical report data before showing the dashboard. If the
@@ -3578,6 +3934,7 @@
     });
   }).then(function(){
     restoreSession();
+    initDashboardHistory();
     state.loading = false;
     attachListeners();
     scheduleAssignWindowRefresh();
