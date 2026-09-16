@@ -1443,52 +1443,43 @@
     });
 
     document.getElementById('bd-submit').onclick = function(){
-      var v1 = f1.value.trim();
-      var v2 = f2.value.trim();
-      if(!v1 || !v2){ showToast('مهرباني وکړئ دواړه خانې ډکې کړئ.'); return; }
+      var v1=f1.value.trim(),v2=f2.value.trim();
+      if(!v1||!v2){showToast('مهرباني وکړئ دواړه خانې ډکې کړئ.');return;}
       var btn=document.getElementById('bd-submit');
-      if(btn) btn.disabled=true;
-      var now=Date.now();
-      var entry = {
-        id: uid(),
-        ntoUsername: state.currentUser.username,
-        field1:v1, field2:v2,
-        status: 'pending',
-        createdAt: now,
-        waitStartAt: now,
-        comment:null, actionedBy:null, actionedAt:null, processingBy:null,
-        ntoSeen: true,
-        updatedAt: now
+      if(btn){btn.disabled=true;btn.textContent='لېږل کېږي...';}
+      var now=Date.now(), entry={
+        id:uid(),ntoUsername:state.currentUser.username,field1:v1,field2:v2,
+        status:'pending',createdAt:now,waitStartAt:now,
+        comment:null,actionedBy:null,actionedAt:null,processingBy:null,ntoSeen:true,updatedAt:now
       };
       var bundlesRef=db.collection('appdata').doc('bundles');
-      var historyRef=db.collection('appdata').doc('bundleHistory');
-      // The bundle and its first history event are committed together. The
-      // notification listener therefore cannot ring for a bundle that failed
-      // to reach Firestore.
+      // Render immediately; Firestore commit continues in the background.
+      state.bundles.unshift(entry);
+      state.bundleDraft={field1:'',field2:''};
+      state.section='sales';
+      renderDashboard(document.getElementById('app'));
       db.runTransaction(function(tx){
-        return Promise.all([tx.get(bundlesRef),tx.get(historyRef)]).then(function(reads){
-          var bs=reads[0], hs=reads[1];
-          var list=(bs.exists && Array.isArray(bs.data().list)) ? bs.data().list.slice() : [];
-          var hist=(hs.exists && Array.isArray(hs.data().list)) ? hs.data().list.slice() : [];
+        return tx.get(bundlesRef).then(function(snap){
+          var list=(snap.exists&&Array.isArray(snap.data().list))?snap.data().list.slice():[];
+          if(list.some(function(x){return x.id===entry.id;})) return;
           list.unshift(entry);
-          hist=appendHistoryInList(hist,{
-            eventId:historyEventId(entry.id,'submitted',now), bundleId:entry.id, eventType:'submitted',
-            ntoUsername:entry.ntoUsername, field1:entry.field1, field2:entry.field2,
-            status:'pending', comment:null, actionedBy:entry.ntoUsername, actorRole:'nto',
-            createdAt:now, actionedAt:null, eventAt:now
-          });
           tx.set(bundlesRef,{list:list},{merge:true});
-          tx.set(historyRef,{list:hist},{merge:true});
         });
       }).then(function(){
-        state.bundleDraft={field1:'',field2:''};
-        showToast('بنډل واستول شو، اوس د تمې په حالت کې دی.');
-        state.section='sales';
-        renderDashboard(document.getElementById('app'));
+        // History is secondary to the bundle commit, so it can never create a
+        // notification for a bundle that does not exist in Firestore.
+        var historyRef=db.collection('appdata').doc('bundleHistory');
+        return historyRef.get().then(function(snap){
+          var hist=(snap.exists&&Array.isArray(snap.data().list))?snap.data().list.slice():[];
+          hist=appendHistoryInList(hist,{eventId:historyEventId(entry.id,'submitted',now),bundleId:entry.id,eventType:'submitted',ntoUsername:entry.ntoUsername,field1:entry.field1,field2:entry.field2,status:'pending',comment:null,actionedBy:entry.ntoUsername,actorRole:'nto',createdAt:now,actionedAt:null,eventAt:now});
+          return historyRef.set({list:hist},{merge:true});
+        });
       }).catch(function(err){
         console.error(err);
-        if(btn) btn.disabled=false;
-        showToast('بنډل ونه لېږل شو. بیا هڅه وکړئ.');
+        var idx=state.bundles.findIndex(function(x){return x.id===entry.id;});
+        if(idx>=0) state.bundles.splice(idx,1);
+        showToast('بنډل ونه لېږل شو؛ مهرباني وکړئ بیا هڅه وکړئ.');
+        render();
       });
     };
 
@@ -1941,48 +1932,28 @@
 
   // ---------------- PROCESS MODAL (admin/manager: approve/reject) ----------------
   function openProcessModal(bundleId){
-    var b = state.bundles.find(function(x){return x.id===bundleId;});
+    var b=state.bundles.find(function(x){return x.id===bundleId;});
     if(!b) return;
     if(b.status!=='pending' && b.status!=='resubmit' && b.status!=='in_process') return;
     if(state.pendingBundleWrites[bundleId]){ showToast('دا بنډل لا پروسس کېږي، لږ صبر وکړئ.'); return; }
     if(state.currentUser.role==='manager' && b.status==='in_process'){
-      showToast('دا بنډل اوس د '+(b.processingBy||'بل مدیر')+' تر پروسس لاندې دی. لومړی باید حالت بیا د انتظار حالت ته راوګرځي.');
-      return;
+      showToast('دا بنډل اوس د '+(b.processingBy||'بل مدیر')+' تر پروسس لاندې دی.'); return;
     }
-    if(state.currentUser.role==='manager' && (b.status==='pending'||b.status==='resubmit') && !isBundleClaimableByManager(b, state.currentUser.username)){
+    if(state.currentUser.role==='manager' && (b.status==='pending'||b.status==='resubmit') && !isBundleClaimableByManager(b,state.currentUser.username)){
       var ownMgr=findAssignedManager(b.ntoUsername);
-      showToast('دا بنډل لومړی د '+ownMgr+' لپاره خوندي دی، مهرباني وکړئ لږ صبر وکړئ.');
-      return;
+      showToast('دا بنډل لومړی د '+ownMgr+' لپاره خوندي دی، مهرباني وکړئ لږ صبر وکړئ.'); return;
     }
+
+    // UI is opened immediately. The server-side transaction is performed when
+    // the final Activate/Reject button is clicked. This removes the network
+    // round-trip from the status click while the final decision remains atomic.
     var previousStatus=(b.status==='in_process')?(b.prevStatusBeforeProcess||'pending'):b.status;
-    var username=state.currentUser.username;
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    state.pendingBundleWrites[bundleId]=true;
-    db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
-        var list=(snap.exists&&Array.isArray(snap.data().list))?snap.data().list.slice():[];
-        var cur=list.find(function(x){return x.id===bundleId;});
-        if(!cur) throw new Error('bundle-not-found');
-        if(cur.status==='in_process' && cur.processingBy && cur.processingBy!==username){ throw new Error('bundle-busy'); }
-        if(cur.status!=='pending' && cur.status!=='resubmit' && cur.status!=='in_process') throw new Error('bundle-not-open');
-        var prev=(cur.status==='in_process')?(cur.prevStatusBeforeProcess||'pending'):cur.status;
-        cur.prevStatusBeforeProcess=prev;
-        cur.status='in_process';
-        cur.processingBy=username;
-        cur.updatedAt=Date.now();
-        tx.set(bundlesRef,{list:list},{merge:true});
-      });
-    }).then(function(){
-      var live=state.bundles.find(function(x){return x.id===bundleId;});
-      if(live){ live.prevStatusBeforeProcess=previousStatus; live.status='in_process'; live.processingBy=username; }
-      if(b.type==='deactivate') state.modal={type:'deactivate-confirm',bundleId:bundleId,previousStatus:previousStatus};
-      else state.modal={type:'process',bundleId:bundleId,previousStatus:previousStatus,draftComment:''};
-      render();
-    }).catch(function(err){
-      console.error(err);
-      showToast(err && err.message==='bundle-busy' ? 'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.' : 'د بنډل حالت ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
-      render();
-    }).then(function(){ delete state.pendingBundleWrites[bundleId]; });
+    b.prevStatusBeforeProcess=previousStatus;
+    b.status='in_process';
+    b.processingBy=state.currentUser.username;
+    if(b.type==='deactivate') state.modal={type:'deactivate-confirm',bundleId:bundleId,previousStatus:previousStatus};
+    else state.modal={type:'process',bundleId:bundleId,previousStatus:previousStatus,draftComment:''};
+    render();
   }
 
   function closeProcessModal(){
@@ -1990,25 +1961,13 @@
     var bundleId=state.modal.bundleId;
     var previous=state.modal.previousStatus||'pending';
     var b=state.bundles.find(function(x){return x.id===bundleId;});
-    if(!b){state.modal=null;render();return;}
-    if(b.status!=='in_process'){state.modal=null;render();return;}
-    if(state.pendingBundleWrites[bundleId]) return;
-    var username=state.currentUser.username;
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    state.pendingBundleWrites[bundleId]=true;
-    db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
-        var list=(snap.exists&&Array.isArray(snap.data().list))?snap.data().list.slice():[];
-        var cur=list.find(function(x){return x.id===bundleId;});
-        if(!cur) throw new Error('bundle-not-found');
-        if(cur.status==='in_process' && cur.processingBy===username){
-          cur.status=previous; cur.processingBy=null; cur.prevStatusBeforeProcess=null; cur.updatedAt=Date.now();
-          tx.set(bundlesRef,{list:list},{merge:true});
-        }
-      });
-    }).then(function(){
-      state.modal=null; render();
-    }).catch(function(err){console.error(err);showToast('د لغوه کولو پر مهال تېروتنه وشوه.');}).then(function(){delete state.pendingBundleWrites[bundleId];});
+    if(b && b.status==='in_process' && b.processingBy===state.currentUser.username){
+      b.status=previous;
+      b.processingBy=null;
+      b.prevStatusBeforeProcess=null;
+    }
+    state.modal=null;
+    render();
   }
 
   // Confirms, then rejects the bundle immediately with the given quick-phrase
