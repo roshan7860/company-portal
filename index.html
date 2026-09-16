@@ -1909,9 +1909,9 @@
     var previousStatus = b.status==='in_process' ? (b.prevStatusBeforeProcess||'pending') : b.status;
     // A local lock stops double-clicks, while the Firestore transaction below
     // is the authoritative claim. No whole bundle array is ever written here.
-    if(state.pendingBundleWrites && state.pendingBundleWrites[bundleId]) return;
-    if(!state.pendingBundleWrites) state.pendingBundleWrites={};
-    state.pendingBundleWrites[bundleId]=true;
+    if(state.pendingBundleClaims && state.pendingBundleClaims[bundleId]) return;
+    if(!state.pendingBundleClaims) state.pendingBundleClaims={};
+    state.pendingBundleClaims[bundleId]=true;
 
     // Open immediately so the manager can enter the comment without waiting.
     b.prevStatusBeforeProcess = previousStatus;
@@ -1944,7 +1944,7 @@
       if(state.modal && state.modal.bundleId===bundleId) state.modal=null;
       showToast(err && err.message==='bundle-busy' ? 'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.' : 'د بنډل حالت ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
       render();
-    }).finally(function(){ delete state.pendingBundleWrites[bundleId]; });
+    }).finally(function(){ delete state.pendingBundleClaims[bundleId]; });
   }
 
   function closeProcessModal(){
@@ -1989,9 +1989,9 @@
     if(!comment){showToast('مهرباني وکړئ لومړی کمینټ ولیکئ.');return;}
     var buttons=['proc-approve','proc-reject'].map(function(id){return document.getElementById(id);});
     buttons.forEach(function(x){if(x){x.disabled=true;x.style.opacity='.6';}});
-    if(state.pendingBundleWrites && state.pendingBundleWrites[bundleId]) return;
-    if(!state.pendingBundleWrites) state.pendingBundleWrites={};
-    state.pendingBundleWrites[bundleId]=true;
+    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
+    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
+    state.pendingBundleDecisions[bundleId]=true;
 
     var actor=state.currentUser.username;
     var approvalAt=Date.now();
@@ -2093,7 +2093,7 @@
       console.error(err);
       showToast(err&&err.message==='bundle-busy'?'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.':err&&err.message==='bundle-already-decided'?'دا بنډل مخکې لا فیصله شوی دی.':'د بنډل د ثبت پر مهال تېروتنه وشوه، بیا هڅه وکړئ.');
       render();
-    }).finally(function(){delete state.pendingBundleWrites[bundleId];});
+    }).finally(function(){delete state.pendingBundleDecisions[bundleId];});
   }
 
   // ---------------- DEACTIVATE-CONFIRM MODAL (admin/manager: deactivate bundles request) ----------------
@@ -2131,20 +2131,67 @@
     var commentEl = document.getElementById('resub-comment');
     var comment = commentEl ? commentEl.value.trim() : '';
     if(!comment){ showToast('مهرباني وکړئ کمینټ ولیکئ.'); return; }
-    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
+    var modal = state.modal;
+    var bundleId = modal.bundleId;
+    var b = state.bundles.find(function(x){return x.id===bundleId;});
     if(!b) return;
-    b.status = 'resubmit';
-    b.comment = comment;
-    b.actionedBy = null;
-    b.actionedAt = null;
-    b.processingBy = null;
-    b.ntoSeen = true;
-    b.waitStartAt = Date.now();
-    persistBundles().then(function(){
+    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
+    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
+    state.pendingBundleDecisions[bundleId]=true;
+
+    var now = Date.now();
+    var ntoUser = state.currentUser.username;
+    var oldStatus = b.status;
+    // Update the customer screen immediately. The database write continues in
+    // the background, so the customer does not wait for Firestore latency.
+    b.status='resubmit';
+    b.comment=comment;
+    b.actionedBy=null;
+    b.actionedAt=null;
+    b.processingBy=null;
+    b.prevStatusBeforeProcess=null;
+    b.ntoSeen=true;
+    b.waitStartAt=now;
+    b.updatedAt=now;
+    state.modal=null;
+    render();
+    showToast('بنډل بیا لېږل کېږي...');
+
+    var bundlesRef=db.collection('appdata').doc('bundles');
+    db.runTransaction(function(tx){
+      return tx.get(bundlesRef).then(function(snap){
+        var list=snap.exists && Array.isArray((snap.data()||{}).list)?(snap.data()||{}).list:[];
+        var live=list.find(function(x){return x&&x.id===bundleId;});
+        if(!live) throw new Error('bundle-not-found');
+        if(live.status!=='rejected') throw new Error('bundle-already-changed');
+        live.status='resubmit';
+        live.comment=comment;
+        live.actionedBy=null;
+        live.actionedAt=null;
+        live.processingBy=null;
+        live.prevStatusBeforeProcess=null;
+        live.ntoSeen=true;
+        live.waitStartAt=now;
+        live.updatedAt=now;
+        tx.set(bundlesRef,{list:list},{merge:true});
+      });
+    }).then(function(){
       showToast('بنډل بیا وړاندې شو.');
-      state.modal = null;
+    }).catch(function(err){
+      console.error(err);
+      var live=state.bundles.find(function(x){return x.id===bundleId;});
+      if(live){
+        live.status=oldStatus;
+        live.comment=comment;
+        live.actionedBy=null;
+        live.actionedAt=null;
+        live.processingBy=null;
+        live.prevStatusBeforeProcess=null;
+        live.ntoSeen=false;
+      }
+      showToast('بنډل بیا ونه لېږل شو؛ مهرباني وکړئ بیا هڅه وکړئ.');
       render();
-    });
+    }).finally(function(){delete state.pendingBundleDecisions[bundleId];});
   }
 
   // ---------------- account modals (logout / desktop-view / change password) ----------------
