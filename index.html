@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.17">
+<meta name="app-build-version" content="0.18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4386,6 +4386,204 @@
     if(state.currentUser) requestNotificationPermission();
   });
 
+})();
+</script>
+
+<script>
+/* English UI completion: translate remaining fixed Pashto UI labels only.
+   User-entered names, comments, complaints, addresses and other stored content
+   are not translated because this routine only replaces exact known UI labels. */
+(function(){
+  var EN_UI_EXTRA = {
+    'نوی مدير حساب جوړ کړئ':'Create Manager Account',
+    'نوی مدیر حساب جوړ کړئ':'Create Manager Account',
+    'نوی مدير حساب جوړ کړی':'Create Manager Account',
+    'نوی مدیر حساب جوړ کړی':'Create Manager Account',
+    'نوی مشتری حساب جوړ کړئ':'Create Customer Account',
+    'نوی مشتری حساب جوړ کړی':'Create Customer Account',
+    'نوی حساب مشتری جوړ کړئ':'Create Customer Account',
+    'نوی حساب مشتري جوړ کړی':'Create Customer Account',
+    'د مدير حسابونه':'Manager Accounts',
+    'د مدیر حسابونه':'Manager Accounts',
+    'د مشتری حسابونه':'Customer Accounts',
+    'د مشتري حسابونه':'Customer Accounts',
+    'مدیر حسابونه':'Manager Accounts',
+    'مشتری حسابونه':'Customer Accounts',
+    'یوزر-نوم':'Username',
+    'یوزر نوم':'Username',
+    'یوزرنوم':'Username',
+    'پاسورډ':'Password',
+    'مشتری-نوم':'Customer Name',
+    'مشتری نوم':'Customer Name',
+    'مشتری-ادرس':'Customer Address',
+    'اړيکې-شمیره':'Contact Number',
+    'اړيکې شمیره':'Contact Number',
+    'اړیکې-شمیره':'Contact Number',
+    'اړیکې شمیره':'Contact Number',
+    'جوړونکی':'Created By',
+    'آنلاین حالت':'Online Status',
+    'حالت':'Status',
+    'نیټه':'Date',
+    'نېټه':'Date',
+    'شمیره':'Number',
+    'ادرس':'Address',
+    'بنډل-نوم':'Bundle Name',
+    'د بنډل نوم':'Bundle Name',
+    'تائيد کوونکى-مدير':'Approving Manager',
+    'تائید کوونکی مدیر':'Approving Manager',
+    'تائيد-مدير':'Approving Manager',
+    'یادونه':'Note',
+    'يادونه-شوې':'Note',
+    'فعال':'Active',
+    'غیر فعال':'Inactive',
+    'غیر فعاله':'Inactive',
+    'فعاله':'Active',
+    'فعاله شوو':'Activated',
+    'فعاله شوې':'Activated',
+    'فروشات':'Sales',
+    'کمیسیون':'Commission',
+    'کمیسیون ټاکنه':'Commission Settings',
+    'کمیسیون فیصدي':'Commission Percentage',
+    'جوړ کړئ':'Create',
+    'جوړ کړی':'Create',
+    'اضافه کړئ':'Add',
+    'تایید':'Approve',
+    'تائید':'Approve',
+    'رد':'Reject',
+    'فعالول':'Activate',
+    'غیر فعالول':'Deactivate',
+    'غیر فعاله کول':'Deactivate',
+    'ایډیټ':'Edit',
+    'معلومات':'Information',
+    'ډیلیټ':'Delete',
+    'ریسیټ':'Reset',
+    'ذخیره':'Save',
+    'لغوه کول':'Cancel',
+    'تړل':'Close',
+    'واستوئ':'Send',
+    'استول':'Send',
+    'بیا ځلې اډمین ته لیږل':'Resubmit to Admin',
+    'بیا ځلې استول':'Resubmit',
+    'بیا هڅه':'Retry',
+    'بار کیږي...':'Loading...',
+    'د ټولو مدیرانو او مشتریانو بیا ننوتل':'Re-login All Managers and Customers',
+    'د ټولو مدیرانو او مشتریانو بیا ننوتل':'Re-login All Managers and Customers',
+    'د ټولو مدیرانو او مشتریانو بیا ننوتل':'Re-login All Managers and Customers',
+    'د مشتری نوم، شمیره یا بنډل ولټوئ...':'Search customer name, number or bundle...',
+    'د مشتری نوم، شمیره یا بنډل ولټوئ':'Search customer name, number or bundle',
+    'د مدیر لټون (یوزرنوم)...':'Search managers (username)...',
+    'د مشتری لټون (یوزرنوم، ادرس یا شمیره)...':'Search customers (username, address or number)...',
+    'د مدیر لټون (یوزرنوم)...':'Search managers (username)...',
+    'د مشتری لټون (یوزرنوم، ادرس یا شمیره)...':'Search customers (username, address or number)...',
+    'نوى بنډل استول':'Send New Bundle',
+    'نوى بنډل-استول':'Send New Bundle',
+    'بنډل-غیر فعالول':'Deactivate Bundle',
+    'بنډل غیر فعالول':'Deactivate Bundle',
+    'بنډلونه او حالتونه':'Bundles & Status',
+    'فروشاتو راپور':'Sales Report',
+    'راپور-مشتري':'Customer Report',
+    'راپور-مشتری':'Customer Report',
+    'د مشتریانو راپور':'Customer Report',
+    'مديرانو فروشات':'Managers Sales',
+    'د مدیرانو فروشات':'Managers Sales',
+    'پیغام-استول':'Send Message',
+    'پیغام استول':'Send Message',
+    'راليږل شوي شکایتونه':'Submitted Complaints',
+    'شکایتونه او نظرونه':'Complaints & Feedback',
+    'شکایت استول':'Send Complaint',
+    'شکایتونه':'Complaints',
+    'مشتریان':'Customers',
+    'مديران':'Managers',
+    'مدير':'Manager',
+    'مدیر':'Manager',
+    'مشتری':'Customer',
+    'اډمین':'Admin',
+    'منیجر':'Manager',
+    'ډیشبورډ':'Dashboard',
+    'ویب ورژن':'Web Version',
+    'ډیسک-ټاپ لید':'Desktop View',
+    'موبایل لید':'Mobile View',
+    'پاسورډ بدلول':'Change Password',
+    'وتل':'Logout',
+    'ژبه':'Language',
+    'انګلیسي':'English',
+    'انګليسي':'English',
+    'پښتو':'Pashto',
+    'دری':'Dari',
+    'روشن-نزدیک شدن':'Roshan - Getting Closer',
+    'د بنډل پروسس کول':'Process Bundle',
+    'د بنډل غیر فعالول':'Deactivate Bundle',
+    'د بنډل ټول معلومات ایډیټ':'Edit Bundle Information',
+    'د یوزر معلومات':'User Information',
+    'د یوزر معلومات ایډیټ':'Edit User Information',
+    'د پیغام متن ولیکئ...':'Write message text...',
+    'نوی پیغام اضافه کړئ':'Add New Message',
+    'موجوده پیغامونه':'Existing Messages',
+    'خپل شکایت دلته ولیکئ...':'Write your complaint here...',
+    'نوی شکایت ولیکئ':'Write a New Complaint',
+    'د شکایت ریپلي دلته ولیکئ...':'Write a reply to this complaint...',
+    'ریپلي':'Reply',
+    'د اډمین ریپلي':'Admin Reply',
+    'هیڅ شکایت نشته.':'No complaints.',
+    'تر اوسه هیڅ حساب نشته.':'No accounts yet.',
+    'تر اوسه هیڅ مشتری حساب نشته.':'No customer accounts yet.',
+    'تر اوسه د هيڅ مدير حساب نشته.':'No manager accounts yet.',
+    'ستاسو د فروشاتو راپور':'Your Sales Report',
+    'فعاله شوې بنډلونو شمير':'Activated Bundle Count',
+    'د فعاله شويو بنډلونو شمير':'Activated Bundle Count',
+    'افغانۍ':'AFN'
+  };
+
+  function lookup(s){
+    var key=String(s||'').replace(/\u00a0/g,' ').trim();
+    if(!key) return null;
+    if(EN_UI_EXTRA[key]) return EN_UI_EXTRA[key];
+    if(typeof STATIC_TRANSLATIONS!=='undefined' && STATIC_TRANSLATIONS[key] && STATIC_TRANSLATIONS[key].en) return STATIC_TRANSLATIONS[key].en;
+    return null;
+  }
+
+  function translateEnglishUI(root){
+    if(!root) return;
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false), nodes=[];
+    var n;
+    while((n=walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){
+      var parent=node.parentElement;
+      if(!parent) return;
+      var value=node.nodeValue;
+      var trimmed=value.replace(/\u00a0/g,' ').trim();
+      var tr=lookup(trimmed);
+      if(tr && trimmed===value.trim()){
+        node.nodeValue=value.replace(trimmed,tr);
+      }
+    });
+
+    var els=root.querySelectorAll ? root.querySelectorAll('*') : [];
+    Array.prototype.forEach.call(els,function(el){
+      ['placeholder','title','aria-label','data-label'].forEach(function(attr){
+        var val=el.getAttribute(attr);
+        var tr=lookup(val);
+        if(tr) el.setAttribute(attr,tr);
+      });
+    });
+  }
+
+  function run(){
+    if((typeof state==='undefined') || (state.language||'en')!=='en') return;
+    translateEnglishUI(document.getElementById('app'));
+  }
+
+  function start(){
+    run();
+    var app=document.getElementById('app');
+    if(!app) return;
+    var observer=new MutationObserver(function(){ run(); });
+    observer.observe(app,{childList:true,subtree:true,characterData:true});
+    window.__englishUiObserver=observer;
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start);
+  else start();
 })();
 </script>
 </body>
