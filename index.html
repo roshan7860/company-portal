@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.29">
+<meta name="app-build-version" content="0.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2069,9 +2069,6 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     };
     body.innerHTML =
       '<div class="dashboard-home">'+
-        '<div class="dashboard-welcome">'+
-          '<div><h2>'+escapeHtml(t('dashboard','Dashboard'))+'</h2><p>'+escapeHtml(ROLE_LABEL[role]||'')+' — '+escapeHtml(t('chooseService','خپل اړوند خدمت وټاکئ'))+'</p></div>'+
-        '</div>'+
         '<div class="dashboard-cards">'+
           menu.map(function(m){
             var count='';
