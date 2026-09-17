@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.19">
+<meta name="app-build-version" content="0.20">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -359,6 +359,7 @@
   .mt-user-btn:hover{border-color:var(--accent);}
   .mt-user-btn .mt-user-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:105px;}
   .mt-user-btn .mt-caret{font-size:10px;color:var(--sidebar-text-dim);flex:none;}
+  .mt-user-dropdown.is-hidden{display:none !important;}
   .mt-user-dropdown{
     position:absolute;top:calc(100% + 8px);left:auto;right:0;
     background:#fff;color:var(--ink);border-radius:10px;
@@ -1877,10 +1878,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     }).join('');
 
     var canChangePw = role==='manager' || role==='admin';
-    var userMenuHtml = '';
-    if(state.userMenuOpen){
-      userMenuHtml =
-        '<div class="mt-user-dropdown">'+
+    var userMenuHtml =
+        '<div class="mt-user-dropdown'+(state.userMenuOpen?'':' is-hidden')+'">'+
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
@@ -1938,7 +1937,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       userBtn.onclick = function(e){
         e.stopPropagation();
         state.userMenuOpen = !state.userMenuOpen;
-        renderDashboard(document.getElementById('app'));
+        var menuEl = document.querySelector('.mt-user-dropdown');
+        if(menuEl) menuEl.classList.toggle('is-hidden', !state.userMenuOpen);
       };
     }
     Array.prototype.forEach.call(document.querySelectorAll('.mt-language-btn'), function(btn){
