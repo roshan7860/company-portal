@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.19">
+<meta name="app-build-version" content="0.25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1832,7 +1832,7 @@
 
     var cardsHtml = menu.map(function(m){
       var count = '';
-      if(m.key==='sales' && ((role==='admin'||role==='manager'||role==='nto') ? actionableCount>0 : myUnseen>0)){
+      if(m.key==='sales' && ((role==='admin'||role==='manager') ? actionableCount>0 : myUnseen>0)){
         var n = (role==='admin'||role==='manager') ? actionableCount : myUnseen;
         count = '<span class="dashboard-card-count">'+n+'</span>';
       }
@@ -1853,7 +1853,7 @@
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
-          ((role==='admin'||role==='manager'||role==='nto') ?
+          ((role==='admin'||role==='manager') ?
             '<div class="mt-language-title">'+uiIcon('language')+' '+escapeHtml(t('language','ژبه'))+'</div>'+
             '<div class="mt-language-row">'+
               '<button class="mt-language-btn '+(state.language==='ps'?'active':'')+'" data-lang="ps">Pashto</button>'+
@@ -1943,7 +1943,7 @@
     if(umForceLogout){
       umForceLogout.onclick = function(){
         state.userMenuOpen = false;
-        var ok = window.confirm('ایا ډاډه یاست چې ټول مدیران او مشتریان له سیستم څخه ووځي؟');
+        showRoshanConfirm('ایا ډاډه یاست چې ټول مدیران او مشتریان له سیستم څخه ووځي؟', function(ok){
         if(!ok) return;
         var v = Date.now();
         db.collection('appdata').doc('system').set({globalLogoutVersion:v, updatedAt:v},{merge:true}).then(function(){
@@ -1951,6 +1951,7 @@
           showToast('ټول مدیران او مشتریان به بیا ننوتل کوي.');
           render();
         }).catch(function(){ showToast('د ټولو یوزرانو د لاګ اوټ کولو کې تېروتنه وشوه.'); });
+        });
       };
     }
     var umLogout = document.getElementById('um-logout');
@@ -2360,7 +2361,7 @@
 
       if(role==='admin'){
         document.getElementById('sales-reset').onclick = function(){
-          var ok = window.confirm('آیا ډاډه یاست چې غواړئ د بنډلونو ټوله جدول (لیست) ړنګ کړئ؟ د مدیرانو او مشتریانو د فروشاتو ټوله شمیرې به اغیزمنې نشي، یوازې دا جدول به پاک شي. دا کار بیرته نشي کیدلی.');
+          showRoshanConfirm('آیا ډاډه یاست چې غواړئ د بنډلونو ټوله جدول (لیست) ړنګ کړئ؟ د مدیرانو او مشتریانو د فروشاتو ټوله شمیرې به اغیزمنې نشي، یوازې دا جدول به پاک شي. دا کار بیرته نشي کیدلی.', function(ok){
           if(!ok) return;
           // یوازې د بنډلونو لیست پاکېږي؛ موجود د مدیرانو/مشتریانو فروشات
           // باید هماغسې پاتې شي او د reset له امله rebuild/zero نه شي.
@@ -2368,6 +2369,7 @@
           persistBundles().then(function(){
             showToast('ټول د بنډل معلومات پاک شول؛ د فروشاتو راپورونه هماغسې پاتې شول.');
             renderDashboard(document.getElementById('app'));
+          });
           });
         };
       }
@@ -2519,7 +2521,7 @@
   function deleteBundleById(bundleId){
     var b = state.bundles.find(function(x){return x.id===bundleId;});
     if(!b) return;
-    var ok = window.confirm('آیا تاسو ډاډه یاست چې غواړئ دا بنډل ړنګ کړئ؟ دا کار به دا بنډل د ټولو یوزرانو لپاره ړنګ کړي او بیرته نشي کیدلی.');
+    showRoshanConfirm('آیا تاسو ډاډه یاست چې غواړئ دا بنډل ړنګ کړئ؟ دا کار به دا بنډل د ټولو یوزرانو لپاره ړنګ کړي او بیرته نشي کیدلی.', function(ok){
     if(!ok) return;
 
     var amount = (b.status==='approved') ? extractNumber(b.comment||'') : 0;
@@ -2592,6 +2594,7 @@
       console.error(err);
       showToast('د بنډل د ړنګولو پر مهال ستونزه وشوه.');
       renderDashboard(document.getElementById('app'));
+    });
     });
   }
 
@@ -2765,9 +2768,10 @@
   // Confirms, then rejects the bundle immediately with the given quick-phrase
   // as its note -- no separate "Reject" click needed afterwards.
   function confirmQuickReject(phrase){
-    var ok = window.confirm('آیا ډاډه یاست چې غواړئ دا بنډل د "'+phrase+'" یادونې سره رد کړئ؟');
-    if(!ok) return;
-    submitProcessDecision('rejected', phrase);
+    showRoshanConfirm('آیا ډاډه یاست چې غواړئ دا بنډل د \"'+phrase+'\" یادونې سره رد کړئ؟', function(ok){
+      if(!ok) return;
+      submitProcessDecision('rejected', phrase);
+    });
   }
 
   function submitProcessDecision(decision, overrideComment){
@@ -3404,17 +3408,19 @@
       })();
     }else if(state.modal.type==='deactivate-confirm'){
       document.getElementById('deact-confirm').onclick = function(){
-        var ok=window.confirm('ایا ډاډه یاست چې دا غوښتنه غیر فعاله شوه؟');
-        if(ok) submitDeactivate();
+        showRoshanConfirm('آیا ډاډه یاست چې دا غوښتنه غیر فعاله شوه؟', function(ok){
+          if(ok) submitDeactivate();
+        });
       };
       document.getElementById('deact-wrong').onclick = function(){
-        var ok=window.confirm('ایا ډاډه یاست چې شمیره غلطه ده او غوښتنه رد کړئ؟');
-        if(ok){
-          var b=state.bundles.find(function(x){return x.id===state.modal.bundleId;});
-          if(!b) return;
-          b.status='rejected'; b.comment='شميره غلطه ده'; b.actionedBy=state.currentUser.username; b.actionedAt=Date.now(); b.processingBy=null; b.prevStatusBeforeProcess=null; b.ntoSeen=false;
-          persistBundles().then(function(){state.modal=null;showToast('غوښتنه رد شوه.');render();});
-        }
+        showRoshanConfirm('آیا ډاډه یاست چې شمیره غلطه ده او غوښتنه رد کړئ؟', function(ok){
+          if(ok){
+            var b=state.bundles.find(function(x){return x.id===state.modal.bundleId;});
+            if(!b) return;
+            b.status='rejected'; b.comment='شميره غلطه ده'; b.actionedBy=state.currentUser.username; b.actionedAt=Date.now(); b.processingBy=null; b.prevStatusBeforeProcess=null; b.ntoSeen=false;
+            persistBundles().then(function(){state.modal=null;showToast('غوښتنه رد شوه.');render();});
+          }
+        });
       };
       document.getElementById('deact-cancel').onclick = closeProcessModal;
     }else if(state.modal.type==='resubmit'){
@@ -3430,12 +3436,13 @@
       if(uiForceLogoutBtn){
         uiForceLogoutBtn.onclick = function(){
           var targetUsername = state.modal.username;
-          var ok = window.confirm(targetUsername+' به سمدلاسه له سیسټم څخه ووځي او د بیا داخلیدو پرمهال به ورته وروستي بدلونونه پلي شي. ته یقین لرئ؟');
+          showRoshanConfirm(targetUsername+' به سمدلاسه له سیسټم څخه ووځي او د بیا داخلیدو پرمهال به ورته وروستي بدلونونه پلي شي. ته یقین لرئ؟', function(ok){
           if(!ok) return;
           forceLogoutUser(targetUsername).then(function(){
             showToast(targetUsername+' لاگ-اوټ شو.');
             state.modal = null;
             render();
+          });
           });
         };
       }
@@ -3566,7 +3573,7 @@
         btn.onclick=function(){ var u=state.users.find(function(x){return x.username===btn.getAttribute('data-approve-user');}); if(!u)return; u.status='enabled'; u.adminReviewComment=''; u.managerResubmitComment=''; persistUsers().then(function(){showToast('مشتری تایید شو.');renderSection(document.getElementById('main-area'));}); };
       });
       Array.prototype.forEach.call(document.querySelectorAll('[data-reject-user]'), function(btn){
-        btn.onclick=function(){ var u=state.users.find(function(x){return x.username===btn.getAttribute('data-reject-user');}); if(!u)return; var c=window.prompt('د رد کولو دلیل ولیکئ:',''); if(c===null)return; u.status='rejected_admin'; u.adminReviewComment=c.trim(); persistUsers().then(function(){showToast('مشتری رد شو.');renderSection(document.getElementById('main-area'));}); };
+        btn.onclick=function(){ var u=state.users.find(function(x){return x.username===btn.getAttribute('data-reject-user');}); if(!u)return; showRoshanPrompt('د رد کولو دلیل ولیکئ:','', function(c){ if(c===null)return; u.status='rejected_admin'; u.adminReviewComment=c.trim(); persistUsers().then(function(){showToast('مشتری رد شو.');renderSection(document.getElementById('main-area'));}); }); };
       });
     }
     if(viewerRole==='manager'){
@@ -3575,11 +3582,12 @@
           var uname=btn.getAttribute('data-resubmit-user');
           var u=state.users.find(function(x){return x.username===uname && x.role==='nto';});
           if(!u) return;
-          var c=window.prompt('د بیا استولو کمینټ ولیکئ (اختیاري):','');
-          if(c===null) return;
-          u.status='pending_admin';
-          u.managerResubmitComment=c.trim();
-          persistUsers().then(function(){showToast('مشتری بیا د اډمین تایید ته واستول شو.');renderSection(document.getElementById('main-area'));});
+          showRoshanPrompt('د بیا استولو کمینټ ولیکئ (اختیاري):','', function(c){
+            if(c===null) return;
+            u.status='pending_admin';
+            u.managerResubmitComment=c.trim();
+            persistUsers().then(function(){showToast('مشتری بیا د اډمین تایید ته واستول شو.');renderSection(document.getElementById('main-area'));});
+          });
         };
       });
     }
@@ -3590,12 +3598,13 @@
       Array.prototype.forEach.call(document.querySelectorAll('[data-delete-user]'), function(btn){
         btn.onclick = function(){
           var uname = btn.getAttribute('data-delete-user');
-          var ok = window.confirm('آیا ډاډه یاست چې غواړئ '+uname+'حساب ډیلیټ کړئ.');
+          showRoshanConfirm('آیا ډاډه یاست چې غواړئ '+uname+'حساب ډیلیټ کړئ.', function(ok){
           if(!ok) return;
           state.users = state.users.filter(function(x){return x.username!==uname;});
           persistUsers().then(function(){
             showToast(uname+' حساب ډیلیټ شو.');
             renderSection(document.getElementById('main-area'));
+          });
           });
         };
       });
@@ -3655,9 +3664,10 @@
         '</tbody></table></div></div>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('[data-other-mgr-reset]'),function(btn){btn.onclick=function(){
-      var mgr=btn.getAttribute('data-other-mgr-reset');if(!window.confirm('آیا ډاډه یاست چې غواړئ د '+mgr+' د نورو مدیرانو فروشاتو راپور صفر کړئ؟'))return;
+      var mgr=btn.getAttribute('data-other-mgr-reset');showRoshanConfirm('آیا ډاډه یاست چې غواړئ د '+mgr+' د نورو مدیرانو فروشاتو راپور صفر کړئ؟', function(ok){if(!ok)return;
       if(!state.otherManagerSalesResetAt)state.otherManagerSalesResetAt={};state.otherManagerSalesResetAt[mgr]=Date.now();
       db.collection('appdata').doc('salesTotals').set({otherManagerSalesResetAt:state.otherManagerSalesResetAt},{merge:true}).then(function(){showToast('د '+mgr+' د مدیرانو فروشات راپور صفر شو.');render();}).catch(function(){showToast('د راپور د ریسیټ پر مهال تېروتنه وشوه.');});
+      });
     };});
   }
 
@@ -3800,7 +3810,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-nto-reset]'), function(btn){
       btn.onclick = function(){
         var nu = btn.getAttribute('data-nto-reset');
-        var ok = window.confirm('آیا ډاډه یاست چې غواړئ د '+nu+' د راپور معلومات پاک کړئ؟');
+        showRoshanConfirm('آیا ډاډه یاست چې غواړئ د '+nu+' د راپور معلومات پاک کړئ؟', function(ok){
         if(!ok) return;
         var resetAt = Date.now();
         if(!state.customerSalesResetAt) state.customerSalesResetAt = {};
@@ -3818,6 +3828,7 @@
           showToast('د '+nu+' راپور پاک شو.');
           render();
         }).catch(function(err){ console.error(err); showToast('د راپور د پاکولو پر مهال تېروتنه وشوه.'); });
+        });
       };
     });
   }
@@ -3870,7 +3881,7 @@
         Array.prototype.forEach.call(document.querySelectorAll('[data-mgr-reset]'), function(btn){
           btn.onclick = function(){
             var mgr = btn.getAttribute('data-mgr-reset');
-            var ok = window.confirm('آیا ډاډه یاست چې غواړئ د '+mgr+' د راپور معلومات پاک کړئ؟');
+            showRoshanConfirm('آیا ډاډه یاست چې غواړئ د '+mgr+' د راپور معلومات پاک کړئ؟', function(ok){
             if(!ok) return;
             var resetAt = Date.now();
             state.managerSales[mgr] = {total:0, count:0};
@@ -3881,6 +3892,7 @@
               showToast('د '+mgr+' راپور پاک شو.');
               renderSection(document.getElementById('main-area'));
             });
+          });
           };
         });
       }
@@ -4080,6 +4092,81 @@
     document.body.appendChild(el);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function(){ el.remove(); }, 2600);
+  }
+
+  // Localized in-page dialogs. These replace browser confirm/prompt dialogs so
+  // the browser's "roshan7860.github.io says" header never appears.
+  function localizeDialogText(msg){
+    var lang=state.language||'ps';
+    var raw=String(msg==null?'':msg);
+    if(lang==='ps') return raw;
+    var exact=lookupUITranslation(raw,lang);
+    if(exact) return exact;
+    var keys=[];
+    Object.keys(MISSING_UI_TRANSLATIONS||{}).forEach(function(k){if(k.length>=3)keys.push(k);});
+    Object.keys(STATIC_TRANSLATIONS||{}).forEach(function(k){if(k.length>=3)keys.push(k);});
+    keys.sort(function(a,b){return b.length-a.length;});
+    var out=raw;
+    keys.forEach(function(k){
+      if(out.indexOf(k)!==-1){var tr=lookupUITranslation(k,lang);if(tr)out=out.split(k).join(tr);}
+    });
+    return out;
+  }
+  function roshanDialogLabels(){
+    var lang=state.language||'ps';
+    if(lang==='en') return {ok:'OK',cancel:'Cancel',save:'Save'};
+    if(lang==='fa') return {ok:'تأیید',cancel:'لغو',save:'ذخیره'};
+    return {ok:'تایید',cancel:'لغوه',save:'ذخیره'};
+  }
+  function closeRoshanDialog(){
+    var el=document.getElementById('roshan-dialog-overlay');
+    if(el) el.remove();
+  }
+  function showRoshanConfirm(message, callback){
+    closeRoshanDialog();
+    var labels=roshanDialogLabels();
+    var overlay=document.createElement('div');
+    overlay.id='roshan-dialog-overlay';
+    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    var box=document.createElement('div');
+    var rtl=(state.language||'ps')!=='en';
+    box.style.cssText='width:min(560px,100%);background:#fff;border-radius:20px;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:24px;box-sizing:border-box;font-family:inherit;color:#1f2937;direction:'+(rtl?'rtl':'ltr')+';';
+    var text=document.createElement('div');
+    text.style.cssText='font-size:18px;line-height:1.7;font-weight:600;white-space:pre-wrap;word-break:break-word;margin-bottom:22px;';
+    text.textContent=localizeDialogText(message);
+    var actions=document.createElement('div');
+    actions.style.cssText='display:flex;gap:12px;justify-content:flex-end;direction:ltr;';
+    var cancel=document.createElement('button');
+    cancel.type='button'; cancel.textContent=labels.cancel;
+    cancel.style.cssText='min-width:110px;padding:12px 18px;border:1px solid #d1d5db;border-radius:12px;background:#fff;color:#374151;font-size:16px;font-weight:700;cursor:pointer;';
+    var ok=document.createElement('button');
+    ok.type='button'; ok.textContent=labels.ok;
+    ok.style.cssText='min-width:110px;padding:12px 18px;border:0;border-radius:12px;background:#1f8a5b;color:#fff;font-size:16px;font-weight:700;cursor:pointer;';
+    actions.appendChild(cancel); actions.appendChild(ok);
+    box.appendChild(text); box.appendChild(actions); overlay.appendChild(box); document.body.appendChild(overlay);
+    function finish(value){closeRoshanDialog();if(typeof callback==='function')callback(value);}
+    cancel.onclick=function(){finish(false);};
+    ok.onclick=function(){finish(true);};
+    overlay.onclick=function(e){if(e.target===overlay)finish(false);};
+    ok.focus();
+  }
+  function showRoshanPrompt(message, defaultValue, callback){
+    closeRoshanDialog();
+    var labels=roshanDialogLabels();
+    var overlay=document.createElement('div');
+    overlay.id='roshan-dialog-overlay';
+    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    var box=document.createElement('div');
+    var rtl=(state.language||'ps')!=='en';
+    box.style.cssText='width:min(560px,100%);background:#fff;border-radius:20px;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:24px;box-sizing:border-box;font-family:inherit;color:#1f2937;direction:'+(rtl?'rtl':'ltr')+';';
+    var text=document.createElement('div'); text.style.cssText='font-size:18px;line-height:1.7;font-weight:600;margin-bottom:14px;'; text.textContent=localizeDialogText(message);
+    var input=document.createElement('textarea'); input.value=defaultValue==null?'':String(defaultValue); input.rows=4; input.style.cssText='width:100%;box-sizing:border-box;padding:12px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;resize:vertical;font-family:inherit;direction:'+(rtl?'rtl':'ltr')+';';
+    var actions=document.createElement('div'); actions.style.cssText='display:flex;gap:12px;justify-content:flex-end;direction:ltr;margin-top:16px;';
+    var cancel=document.createElement('button'); cancel.type='button'; cancel.textContent=labels.cancel; cancel.style.cssText='min-width:110px;padding:12px 18px;border:1px solid #d1d5db;border-radius:12px;background:#fff;color:#374151;font-size:16px;font-weight:700;cursor:pointer;';
+    var ok=document.createElement('button'); ok.type='button'; ok.textContent=labels.save; ok.style.cssText='min-width:110px;padding:12px 18px;border:0;border-radius:12px;background:#1f8a5b;color:#fff;font-size:16px;font-weight:700;cursor:pointer;';
+    actions.appendChild(cancel); actions.appendChild(ok); box.appendChild(text); box.appendChild(input); box.appendChild(actions); overlay.appendChild(box); document.body.appendChild(overlay);
+    function finish(value){closeRoshanDialog();if(typeof callback==='function')callback(value);}
+    cancel.onclick=function(){finish(null);}; ok.onclick=function(){finish(input.value);}; overlay.onclick=function(e){if(e.target===overlay)finish(null);}; input.focus();
   }
 
   // ---------------- notifications (Web Notification API + FCM push) ----------------
