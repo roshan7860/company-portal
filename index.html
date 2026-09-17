@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.19">
+<meta name="app-build-version" content="0.27">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -350,7 +350,7 @@
   @media(max-width:860px){.complaint-reply-form{flex-direction:column;align-items:stretch}.complaint-reply-form .btn{width:100%;}}
 
   /* ---------- Top-bar user menu ---------- */
-  .mt-user-wrap{position:relative;flex:none;}
+  .mt-user-wrap{position:relative;flex:none;display:flex;align-items:center;gap:10px;direction:ltr;}
   .mt-user-btn{
     background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff;
     padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;
@@ -529,17 +529,17 @@
   /* ---------- Simplified header: no side menu/user icon ---------- */
   .mobile-topbar .mt-title{font-size:12px !important;font-weight:700 !important;}
   .mobile-topbar .mt-spacer{width:120px !important;flex:none;}
-  .mt-user-wrap{position:relative;flex:none;display:flex;align-items:center;gap:9px;}
-  .mt-user-avatar{
-    width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.42);
-    background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;
-    justify-content:center;font-family:inherit;font-size:17px;font-weight:900;
-    cursor:pointer;flex:none;box-sizing:border-box;
+  .mt-user-wrap{position:relative;flex:none;display:flex;align-items:center;gap:10px;direction:rtl;}
+  .mt-user-btn{border:none !important;background:#fff !important;color:#25a56a !important;padding:0 !important;
+    width:42px !important;height:42px !important;border-radius:50% !important;
+    font-size:19px !important;font-weight:900 !important;cursor:pointer !important;
+    display:flex !important;align-items:center !important;justify-content:center !important;
+    font-family:inherit !important;flex:none !important;box-sizing:border-box !important;
+    box-shadow:none !important;
   }
-  .mt-user-avatar:hover{border-color:var(--accent);background:rgba(255,255,255,.18);}
-  .mt-user-btn{border:none !important;background:transparent !important;color:#fff !important;padding:0 !important;max-width:none !important;}
+  .mt-user-btn:hover{background:#fff !important;color:#25a56a !important;}
   .mt-user-name-clickable{
-    display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:default;
   }
   .shell{display:block !important;}
@@ -1874,10 +1874,10 @@
     root.innerHTML =
       '<div class="mobile-topbar">'+
         '<div class="mt-user-wrap" id="mt-user-wrap">'+
-          '<span class="mt-user-name-clickable" aria-hidden="true">'+escapeHtml(state.currentUser.username)+'</span>'+
-          '<button type="button" class="mt-user-btn mt-user-avatar" id="mt-user-btn" title="د یوزر مینو">'+
+          '<button type="button" class="mt-user-btn" id="mt-user-btn" title="د یوزر مینو">'+
             escapeHtml(String(state.currentUser.username||'').charAt(0).toUpperCase())+
           '</button>'+
+          '<span class="mt-user-name-clickable" aria-hidden="true">'+escapeHtml(state.currentUser.username)+'</span>'+
           userMenuHtml+
         '</div>'+
         ''+
