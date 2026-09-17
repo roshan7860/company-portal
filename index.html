@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.20">
+<meta name="app-build-version" content="0.21">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1879,7 +1879,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
 
     var canChangePw = role==='manager' || role==='admin';
     var userMenuHtml =
-        '<div class="mt-user-dropdown'+(state.userMenuOpen?'':' is-hidden')+'">'+
+      '<div class="mt-user-dropdown'+(state.userMenuOpen?'':' is-hidden')+'">'+
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
@@ -1893,7 +1893,6 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           '<div class="mt-user-item" style="font-size:12px;opacity:.75;cursor:default;">'+escapeHtml(t('webVersion','ویب ورژن'))+': '+escapeHtml(APP_BUILD_VERSION)+'</div>'+
           '<button class="mt-user-item mt-user-item-danger" id="um-logout">'+uiIcon('logout')+' '+escapeHtml(t('logout','وتل (Logout)'))+'</button>'+
         '</div>';
-    }
 
     root.innerHTML =
       '<div class="mobile-topbar">'+
