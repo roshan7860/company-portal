@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.22">
+<meta name="app-build-version" content="0.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1832,7 +1832,7 @@
 
     var cardsHtml = menu.map(function(m){
       var count = '';
-      if(m.key==='sales' && ((role==='admin'||role==='manager') ? actionableCount>0 : myUnseen>0)){
+      if(m.key==='sales' && ((role==='admin'||role==='manager'||role==='nto') ? actionableCount>0 : myUnseen>0)){
         var n = (role==='admin'||role==='manager') ? actionableCount : myUnseen;
         count = '<span class="dashboard-card-count">'+n+'</span>';
       }
@@ -1853,7 +1853,7 @@
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
-          ((role==='admin'||role==='manager') ?
+          ((role==='admin'||role==='manager'||role==='nto') ?
             '<div class="mt-language-title">'+uiIcon('language')+' '+escapeHtml(t('language','ژبه'))+'</div>'+
             '<div class="mt-language-row">'+
               '<button class="mt-language-btn '+(state.language==='ps'?'active':'')+'" data-lang="ps">Pashto</button>'+
