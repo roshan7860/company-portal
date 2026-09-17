@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.25">
+<meta name="app-build-version" content="0.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -529,13 +529,19 @@
   /* ---------- Simplified header: no side menu/user icon ---------- */
   .mobile-topbar .mt-title{font-size:12px !important;font-weight:700 !important;}
   .mobile-topbar .mt-spacer{width:120px !important;flex:none;}
-  .mt-user-wrap{position:relative;flex:none;}
-  .mt-user-btn{border:none !important;background:transparent !important;color:#fff !important;padding:6px 4px !important;max-width:180px !important;}
-  .mt-user-btn .mt-user-name-clickable{
-    display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;
+  .mt-user-wrap{position:relative;flex:none;display:flex;align-items:center;gap:9px;}
+  .mt-user-avatar{
+    width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.42);
+    background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;
+    justify-content:center;font-family:inherit;font-size:17px;font-weight:900;
+    cursor:pointer;flex:none;box-sizing:border-box;
   }
-  .mt-user-btn:hover .mt-user-name-clickable{text-decoration:underline;}
+  .mt-user-avatar:hover{border-color:var(--accent);background:rgba(255,255,255,.18);}
+  .mt-user-btn{border:none !important;background:transparent !important;color:#fff !important;padding:0 !important;max-width:none !important;}
+  .mt-user-name-clickable{
+    display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:default;
+  }
   .shell{display:block !important;}
   .shell > .main{width:100% !important;max-width:none !important;}
   .sidebar,.sidebar-backdrop,.hamburger-btn{display:none !important;}
@@ -738,6 +744,7 @@
     commissionRate:3,
     bundleSearch:'',
     bundlePage:0,
+    ntoReportSearch:'',
     userSearch:{manager:'', nto:''},
     userPage:{manager:0, nto:0},
     bundleDraft:{field1:'', field2:''},
@@ -1849,7 +1856,6 @@
     if(state.userMenuOpen){
       userMenuHtml =
         '<div class="mt-user-dropdown">'+
-          (role!=='nto' ? '<button class="mt-user-item" id="um-desktop">'+(state.forceDesktop?uiIcon('mobile')+' '+escapeHtml(t('mobile','موبایل لید')):uiIcon('desktop')+' '+escapeHtml(t('desktop','ډیسک-ټاپ لید')))+'</button>' : '')+
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
@@ -1868,12 +1874,13 @@
     root.innerHTML =
       '<div class="mobile-topbar">'+
         '<div class="mt-user-wrap" id="mt-user-wrap">'+
-          '<button class="mt-user-btn" id="mt-user-btn" title="د یوزر مینو">'+
-            '<span class="mt-user-name-clickable">'+escapeHtml(state.currentUser.username)+'</span>'+
+          '<span class="mt-user-name-clickable" aria-hidden="true">'+escapeHtml(state.currentUser.username)+'</span>'+
+          '<button type="button" class="mt-user-btn mt-user-avatar" id="mt-user-btn" title="د یوزر مینو">'+
+            escapeHtml(String(state.currentUser.username||'').charAt(0).toUpperCase())+
           '</button>'+
           userMenuHtml+
         '</div>'+
-        '<span class="mt-title">روشن-نزدیک شدن</span>'+
+        ''+
         '<div class="mt-spacer"></div>'+
       '</div>'+
       '<div class="shell">'+
@@ -2317,7 +2324,13 @@
         return isBundleClaimableByManager(b, state.currentUser.username);
       });
     }
-    var rows = filterBySearch(allRows, state.bundleSearch, ['ntoUsername','field1','field2','comment','actionedBy']);
+    var bundleQ = (state.bundleSearch||'').trim().toLowerCase();
+    var rows = !bundleQ ? allRows : allRows.filter(function(b){
+      return String(b.ntoUsername||'').toLowerCase().indexOf(bundleQ)!==-1 ||
+             String(b.field1||'').toLowerCase().indexOf(bundleQ)!==-1 ||
+             String(b.status||'').toLowerCase().indexOf(bundleQ)!==-1 ||
+             String(statusLabel(b.status)||'').toLowerCase().indexOf(bundleQ)!==-1;
+    });
     // Resubmitted bundles are pinned to the very top of the list for every
     // role (admin/manager/nto), most-recently-resubmitted first. Everything
     // else keeps its existing relative order (Array#sort is stable).
@@ -3797,7 +3810,10 @@
       var commission = (Number(s.total)||0) * commissionRate / 100;
       return {username:u.username, count:s.count, total:s.total, commission:commission};
     });
-    body.innerHTML = '<div class="card"><div style="overflow-x:auto;"><table><thead><tr>'+
+    rows = filterBySearch(rows, state.ntoReportSearch, ['username']);
+    var ntoReportSearchPlaceholder = state.language==='en' ? 'Search customer name...' : (state.language==='fa' ? 'جستجوی نام مشتری...' : 'د مشتری نوم ولټوئ...');
+    var ntoReportSearchHtml = '<div class="search-row"><input id="nto-report-search" type="text" placeholder="'+escapeHtml(ntoReportSearchPlaceholder)+'" value="'+escapeHtml(state.ntoReportSearch||'')+'"><span class="search-icon">'+uiIcon('search')+'</span></div>';
+    body.innerHTML = '<div class="card">'+ntoReportSearchHtml+'<div style="overflow-x:auto;"><table><thead><tr>'+
       '<th>مشتری</th><th>فعاله شويو بنډلونو شمير</th><th>فروشات</th><th>کمیسیون</th>'+(role==='admin'?'<th></th>':'')+
       '</tr></thead><tbody>'+
       rows.map(function(r){
@@ -3805,6 +3821,8 @@
           (role==='admin' ? '<td><button class="icon-btn-sm" data-nto-reset="'+escapeHtml(r.username)+'" title="ریسیټ">'+uiIcon('reset')+'</button></td>' : '')+'</tr>';
       }).join('')+
     '</tbody></table></div></div>';
+
+    bindSearchInput('nto-report-search', function(){return state.ntoReportSearch;}, function(v){state.ntoReportSearch=v;}, function(){ renderNtoReportSection(body, headerRow, role); });
 
     if(role!=='admin') return;
     Array.prototype.forEach.call(document.querySelectorAll('[data-nto-reset]'), function(btn){
