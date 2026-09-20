@@ -1883,7 +1883,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           (canChangePw ? '<button class="mt-user-item" id="um-changepw">'+uiIcon('key')+' '+escapeHtml(t('changePassword','پاسورډ بدلول'))+'</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-commission">'+uiIcon('money')+' کمیسیون ټاکنه</button>' : '')+
           (role==='admin' ? '<button class="mt-user-item" id="um-force-logout">'+uiIcon('lock')+' د ټولو مدیرانو او مشتریانو بیا ننوتل</button>' : '')+
-          ((role==='admin'||role==='manager') ?
+          ((role==='admin'||role==='manager'||role==='nto') ?
             '<div class="mt-language-title">'+uiIcon('language')+' '+escapeHtml(t('language','ژبه'))+'</div>'+
             '<div class="mt-language-row">'+
               '<button class="mt-language-btn '+(state.language==='ps'?'active':'')+'" data-lang="ps">Pashto</button>'+
@@ -2354,8 +2354,9 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       var ar = a.status==='resubmit' ? 1 : 0;
       var br = b.status==='resubmit' ? 1 : 0;
       if(ar!==br) return br-ar;
-      if(ar===1 && br===1) return (b.waitStartAt||b.createdAt||0) - (a.waitStartAt||a.createdAt||0);
-      return 0;
+      var at = Number(a.waitStartAt||a.createdAt||0);
+      var bt = Number(b.waitStartAt||b.createdAt||0);
+      return bt-at;
     });
     var canProcess = (role==='admin' || role==='manager');
 
