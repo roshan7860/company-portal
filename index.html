@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.7">
+<meta name="app-build-version" content="1.8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1054,11 +1054,14 @@
   function loadAllOnce(){
     return Promise.all([
       ensureSeed(),
-      loadJSON('bundles', []).then(function(v){ state.bundles = v; }),
+      loadJSON('bundles', []).then(function(v){ state.bundles = mergeIncomingBundlesKeepingFastStatus(v); }),
       loadJSON('complaints', []).then(function(v){ state.complaints = v; }),
       loadJSON('rolls', []).then(function(v){ state.rolls = v; }),
-      db.collection('appdata').doc('bundleStatus').get().then(function(snap){
-        if(snap.exists){ mergeFastBundleStatuses((snap.data()||{}).statuses||{}); }
+      db.collection('appdata').where('type','==','bundleStatus').get().then(function(snap){
+        snap.forEach(function(doc){
+          var d=doc.data()||{};
+          if(d.bundleId && d.status) mergeFastBundleStatuses((function(){var o={};o[d.bundleId]=d;return o;})());
+        });
       }).catch(function(){}),
       loadJSON('settings', {commissionRate:3}).then(function(v){
         var rate = Number(v && v.commissionRate);
@@ -1118,6 +1121,8 @@
   function publishBundleStatusFast(bundle){
     if(!bundle || !bundle.id) return Promise.resolve();
     var payload={
+      type:'bundleStatus',
+      bundleId:bundle.id,
       status:bundle.status,
       comment:bundle.comment||null,
       actionedBy:bundle.actionedBy||null,
@@ -1132,10 +1137,11 @@
       salesAmount:bundle.salesAmount||null,
       salesLedgerKey:bundle.salesLedgerKey||null
     };
-    var ref=db.collection('appdata').doc('bundleStatus');
-    var patch={};
-    patch['statuses.'+bundle.id]=payload;
-    return ref.set(patch,{merge:true});
+    // IMPORTANT: each bundle has its own tiny Firestore document. The old
+    // shared bundleStatus document caused every status click to compete with
+    // all other status updates. This write is independent and is delivered
+    // through Firestore realtime immediately after the manager clicks.
+    return db.collection('appdata').doc('bundleStatus_'+String(bundle.id)).set(payload,{merge:true});
   }
 
   function mergeFastBundleStatuses(statuses){
@@ -4425,11 +4431,20 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         render();
       }
     }));
-    state.unsubs.push(db.collection('appdata').doc('bundleStatus').onSnapshot(function(snap){
-      if(snap.exists){
-        var changed=mergeFastBundleStatuses((snap.data()||{}).statuses||{});
-        if(changed) renderUnlessTyping();
-      }
+    // Realtime status channel: listen to independent per-bundle documents.
+    // This avoids the write/read contention of one shared status document.
+    state.unsubs.push(db.collection('appdata').where('type','==','bundleStatus').onSnapshot(function(snap){
+      var changed=false;
+      snap.docChanges().forEach(function(change){
+        if(change.type==='added' || change.type==='modified'){
+          var d=change.doc.data()||{};
+          if(d.bundleId && d.status){
+            var one={}; one[d.bundleId]=d;
+            if(mergeFastBundleStatuses(one)) changed=true;
+          }
+        }
+      });
+      if(changed) renderUnlessTyping();
     }));
     state.unsubs.push(db.collection('appdata').doc('bundles').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){
