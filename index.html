@@ -737,6 +737,7 @@
     language:(function(){ try{return localStorage.getItem('roshanPortalLanguage')||'en';}catch(e){return 'ps';} })(),
     knownBundleIds:null,  // sentinel: null = not yet initialized, true = initialized
     notifiedBundleIds:{}, // bundle.id -> true once this client has already rung/notified for it (avoids duplicate rings)
+    fastBundleStatuses:{}, // realtime status overlay; avoids client-clock ordering problems
     assignTimer:null,     // pending setTimeout handle, see scheduleAssignWindowRefresh()
     forceDesktop:false,
     mobileMenuOpen:false,
@@ -1139,21 +1140,46 @@
 
   function mergeFastBundleStatuses(statuses){
     if(!statuses || typeof statuses!=='object') return false;
+    if(!state.fastBundleStatuses) state.fastBundleStatuses={};
     var changed=false;
     Object.keys(statuses).forEach(function(id){
       var patch=statuses[id];
       if(!patch || !patch.status) return;
+      // IMPORTANT: do not compare the customer's and manager's phone clocks.
+      // Their clocks can differ by minutes. Firestore realtime delivery order
+      // is authoritative for this small status channel.
+      state.fastBundleStatuses[id]=patch;
       var b=state.bundles.find(function(x){return x&&x.id===id;});
       if(!b) return;
-      var incomingAt=Number(patch.updatedAt)||0;
-      var localAt=Number(b.updatedAt)||0;
-      if(incomingAt && localAt && incomingAt < localAt) return;
       Object.keys(patch).forEach(function(k){
         if(patch[k]!==undefined) b[k]=patch[k];
       });
       changed=true;
     });
     return changed;
+  }
+
+  function mergeIncomingBundlesKeepingFastStatus(newList){
+    if(!Array.isArray(newList)) return state.bundles;
+    var fast=state.fastBundleStatuses||{};
+    return newList.map(function(incoming){
+      if(!incoming || !incoming.id) return incoming;
+      var patch=fast[incoming.id];
+      if(!patch || !patch.status) return incoming;
+      // The large bundles document may arrive a little later than the fast
+      // status document. Never let that older snapshot temporarily move the
+      // customer's status backwards.
+      if(incoming.status!==patch.status){
+        var merged={};
+        Object.keys(incoming).forEach(function(k){merged[k]=incoming[k];});
+        Object.keys(patch).forEach(function(k){if(patch[k]!==undefined) merged[k]=patch[k];});
+        return merged;
+      }
+      // Main document caught up. Keep its complete record and forget the fast
+      // overlay for this bundle.
+      delete fast[incoming.id];
+      return incoming;
+    });
   }
   function persistComplaints(){ return saveJSON('complaints', state.complaints); }
   function persistRolls(){ return saveJSON('rolls', state.rolls); }
@@ -4415,7 +4441,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           checkForNewNtoActivity(newList);
           checkForStatusChangesForNto(newList);
         }
-        state.bundles = newList;
+        state.bundles = mergeIncomingBundlesKeepingFastStatus(newList);
         renderUnlessTyping();
       }
     }));
