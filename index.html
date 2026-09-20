@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.7">
+<meta name="app-build-version" content="1.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2827,12 +2827,14 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       : {type:'process', bundleId:bundleId, previousStatus:previousStatus, draftComment:''};
     render();
 
-    // Publish the visible processing state immediately; do not make the
-    // customer's UI wait for the large bundles-array transaction.
-    publishBundleStatusFast(b).catch(function(err){console.warn('fast bundle claim failed',err);});
+    // Send the small status write first. The large bundles transaction is
+    // started only after this fast status write completes, so Firestore cannot
+    // queue the customer-facing status behind the large transaction.
+    var fastClaimWrite = publishBundleStatusFast(b);
 
     var bundlesRef=db.collection('appdata').doc('bundles');
-    db.runTransaction(function(tx){
+    fastClaimWrite.then(function(){
+      return db.runTransaction(function(tx){
       return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
         if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) throw new Error('decision-in-progress');
@@ -2846,6 +2848,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         live.processingBy=state.currentUser.username;
         live.updatedAt=Date.now();
         tx.set(bundlesRef,{list:list},{merge:true});
+      });
       });
     }).catch(function(err){
       console.error(err);
@@ -2939,9 +2942,11 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       local.salesAmount=amount;
       local.salesLedgerKey=bundleId+'|'+approvalId+'|'+actionAt;
     }
-    // Push the final status through the small fast channel first. This makes
-    // approved/rejected visible to the customer immediately.
-    publishBundleStatusFast(local).catch(function(err){console.warn('fast bundle decision failed',err);});
+    // IMPORTANT: wait for the tiny status write to be sent/acknowledged
+    // before starting the large bundles/sales transaction. Starting both at
+    // once can make Firestore queue the fast status behind the transaction,
+    // which is exactly what caused approved/rejected to reach the customer late.
+    var fastDecisionWrite = publishBundleStatusFast(local);
     state.modal=null;
     render();
     showToast(decision==='approved'?'بنډل فعاله شو؛ معلومات ثبتېږي...':'بنډل رد شو؛ معلومات ثبتېږي...');
@@ -2949,7 +2954,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var bundlesRef=db.collection('appdata').doc('bundles');
     var totalsRef=db.collection('appdata').doc('salesTotals');
 
-    db.runTransaction(function(tx){
+    fastDecisionWrite.then(function(){
+      return db.runTransaction(function(tx){
       return Promise.all([tx.get(bundlesRef),tx.get(totalsRef)]).then(function(reads){
         var bSnap=reads[0], tSnap=reads[1];
         var list=bSnap.exists && Array.isArray((bSnap.data()||{}).list)?(bSnap.data()||{}).list:[];
@@ -3022,6 +3028,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
             },{merge:true});
           }
         }
+        });
       });
     }).then(function(){
       showToast(decision==='approved'?'بنډل فعاله شو او فروشات ثبت شول.':'بنډل رد شو.');
@@ -3052,11 +3059,16 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     b.prevStatusBeforeProcess = null;
     b.ntoSeen = false;
     b.updatedAt = Date.now();
-    publishBundleStatusFast(b).catch(function(err){console.warn('fast deactivate failed',err);});
-    // Close immediately; persist the decision in the background.
+    // Send the customer-facing status first; only then start the larger
+    // bundles persistence so the two writes do not compete with each other.
+    var fastDeactivateWrite = publishBundleStatusFast(b);
+    // Close immediately; persist the decision in the background after the
+    // fast status write has completed.
     state.modal = null;
     render();
-    persistBundles().then(function(){
+    fastDeactivateWrite.then(function(){
+      return persistBundles();
+    }).then(function(){
       showToast('بنډلونه غیري فعاله شول.');
     }).catch(function(err){
       console.error(err);
@@ -4126,7 +4138,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         c.replyAt = Date.now();
         list[idx] = c;
         tx.set(complaintsRef, {list:list}, {merge:true});
-      });
+        });
     }).then(function(){
       var local = state.complaints.find(function(c){return c.id===complaintId;});
       if(local){
