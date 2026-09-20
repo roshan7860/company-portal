@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.8">
+<meta name="app-build-version" content="1.7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4398,6 +4398,34 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   function attachListeners(){
     if(state.unsubs) return;
     state.unsubs = [];
+    // Each bundle now has its own tiny status document. Listen to the exact
+    // documents instead of a collection-wide query so a decision (approved/
+    // rejected/deactivated) reaches the customer's screen without waiting
+    // for other bundle-status documents to be scanned/updated.
+    state.fastStatusUnsubs = [];
+    function refreshDirectBundleStatusListeners(){
+      if(!state.currentUser || !Array.isArray(state.bundles)) return;
+      if(!state.fastStatusUnsubs) state.fastStatusUnsubs=[];
+      state.fastStatusUnsubs.forEach(function(unsub){ try{unsub();}catch(e){} });
+      state.fastStatusUnsubs=[];
+      var mine = state.bundles.filter(function(b){
+        if(!b || !b.id) return false;
+        if(state.currentUser.role==='nto') return b.ntoUsername===state.currentUser.username;
+        return true;
+      });
+      mine.forEach(function(b){
+        var ref=db.collection('appdata').doc('bundleStatus_'+String(b.id));
+        var unsub=ref.onSnapshot(function(snap){
+          if(!snap.exists) return;
+          var d=snap.data()||{};
+          if(!d.bundleId || !d.status) return;
+          var one={}; one[d.bundleId]=d;
+          if(mergeFastBundleStatuses(one)) renderUnlessTyping();
+        });
+        state.fastStatusUnsubs.push(unsub);
+      });
+    }
+    state.refreshDirectBundleStatusListeners=refreshDirectBundleStatusListeners;
     state.unsubs.push(db.collection('appdata').doc('users').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){
         state.users = snap.data().list;
@@ -4431,21 +4459,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         render();
       }
     }));
-    // Realtime status channel: listen to independent per-bundle documents.
-    // This avoids the write/read contention of one shared status document.
-    state.unsubs.push(db.collection('appdata').where('type','==','bundleStatus').onSnapshot(function(snap){
-      var changed=false;
-      snap.docChanges().forEach(function(change){
-        if(change.type==='added' || change.type==='modified'){
-          var d=change.doc.data()||{};
-          if(d.bundleId && d.status){
-            var one={}; one[d.bundleId]=d;
-            if(mergeFastBundleStatuses(one)) changed=true;
-          }
-        }
-      });
-      if(changed) renderUnlessTyping();
-    }));
+    // Direct per-bundle listeners are attached below from the bundles
+    // realtime snapshot. This is intentionally not a collection-wide query.
     state.unsubs.push(db.collection('appdata').doc('bundles').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){
         var newList = snap.data().list;
@@ -4457,12 +4472,14 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           checkForStatusChangesForNto(newList);
         }
         state.bundles = mergeIncomingBundlesKeepingFastStatus(newList);
+        if(state.refreshDirectBundleStatusListeners) state.refreshDirectBundleStatusListeners();
         renderUnlessTyping();
       }
     }));
     state.unsubs.push(db.collection('appdata').doc('complaints').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){ state.complaints = snap.data().list; render(); }
     }));
+    refreshDirectBundleStatusListeners();
     state.unsubs.push(db.collection('appdata').doc('rolls').onSnapshot(function(snap){
       if(snap.exists && snap.data().list){ state.rolls = snap.data().list; render(); }
     }));
