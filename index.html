@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="0.21">
+<meta name="app-build-version" content="1.7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1865,7 +1865,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
 
     var cardsHtml = menu.map(function(m){
       var count = '';
-      if(m.key==='sales' && ((role==='admin'||role==='manager') ? actionableCount>0 : myUnseen>0)){
+      if(m.key==='sales' && ((role==='admin'||role==='manager'||role==='nto') ? actionableCount>0 : myUnseen>0)){
         var n = (role==='admin'||role==='manager') ? actionableCount : myUnseen;
         count = '<span class="dashboard-card-count">'+n+'</span>';
       }
@@ -2240,14 +2240,9 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       showToast('بنډل لېږل کېږي...');
 
       var bundlesRef = db.collection('appdata').doc('bundles');
-      db.runTransaction(function(tx){
-        return tx.get(bundlesRef).then(function(snap){
-          var current = snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
-          // Prevent the same generated ID from ever being inserted twice.
-          if(!current.some(function(x){return x && x.id===entry.id;})) current.unshift(entry);
-          tx.set(bundlesRef, {list:current}, {merge:true});
-        });
-      }).then(function(){
+      // Atomic arrayUnion avoids reading and rewriting the entire bundles list,
+      // so a new customer bundle reaches the managers much faster.
+      bundlesRef.set({list: firebase.firestore.FieldValue.arrayUnion(entry)}, {merge:true}).then(function(){
         showToast('بنډل په بریالیتوب سره واستول شو.');
         state.section='sales';
         renderDashboard(document.getElementById('app'));
@@ -2544,8 +2539,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   // (used to hide a customer's number from a manager until it's approved).
   function maskLast3Digits(str){
     str = String(str==null?'':str);
-    if(str.length<=3) return '***';
-    return escapeHtml(str.slice(0,-3))+'***';
+    if(str.length<=5) return escapeHtml(str);
+    return escapeHtml(str.slice(0,3))+'***'+escapeHtml(str.slice(-2));
   }
 
   // ---------------- ADMIN: delete a single bundle everywhere ----------------
@@ -4296,6 +4291,16 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   }
 
   // ---------------- real-time sync ----------------
+  // Do not re-render while an input/textarea is focused. A realtime Firestore
+  // snapshot can otherwise replace the focused element and hide the mobile keyboard.
+  function isUserTyping(){
+    var el=document.activeElement;
+    if(!el) return false;
+    return el.id==='bd-f1' || el.id==='bd-f2' || el.id==='proc-comment' || el.id==='resub-comment' || el.id==='eb-comment';
+  }
+  function renderUnlessTyping(){
+    if(!isUserTyping()) render();
+  }
   function attachListeners(){
     if(state.unsubs) return;
     state.unsubs = [];
@@ -4343,7 +4348,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           checkForStatusChangesForNto(newList);
         }
         state.bundles = newList;
-        render();
+        renderUnlessTyping();
       }
     }));
     state.unsubs.push(db.collection('appdata').doc('complaints').onSnapshot(function(snap){
