@@ -1056,6 +1056,9 @@
       loadJSON('bundles', []).then(function(v){ state.bundles = v; }),
       loadJSON('complaints', []).then(function(v){ state.complaints = v; }),
       loadJSON('rolls', []).then(function(v){ state.rolls = v; }),
+      db.collection('appdata').doc('bundleStatus').get().then(function(snap){
+        if(snap.exists){ mergeFastBundleStatuses((snap.data()||{}).statuses||{}); }
+      }).catch(function(){}),
       loadJSON('settings', {commissionRate:3}).then(function(v){
         var rate = Number(v && v.commissionRate);
         state.commissionRate = isFinite(rate) && rate >= 0 ? rate : 3;
@@ -1104,6 +1107,54 @@
 
   function persistUsers(){ return saveJSON('users', state.users); }
   function persistBundles(){ return saveJSON('bundles', state.bundles); }
+
+  // Fast status channel: the main bundles document stores a large array, so
+  // rewriting it can take a long time on a slow/mobile connection. Status
+  // changes are also published to a small per-bundle map document. Customers
+  // and managers listen to this channel and update the visible status as soon
+  // as Firestore acknowledges the small write, while the full bundles record
+  // continues to be saved in the background.
+  function publishBundleStatusFast(bundle){
+    if(!bundle || !bundle.id) return Promise.resolve();
+    var payload={
+      status:bundle.status,
+      comment:bundle.comment||null,
+      actionedBy:bundle.actionedBy||null,
+      actionedAt:bundle.actionedAt||null,
+      processingBy:bundle.processingBy||null,
+      prevStatusBeforeProcess:bundle.prevStatusBeforeProcess||null,
+      ntoSeen:bundle.ntoSeen!==false,
+      updatedAt:Number(bundle.updatedAt)||Date.now(),
+      approvalId:bundle.approvalId||null,
+      approvedAt:bundle.approvedAt||null,
+      approvedBy:bundle.approvedBy||null,
+      salesAmount:bundle.salesAmount||null,
+      salesLedgerKey:bundle.salesLedgerKey||null
+    };
+    var ref=db.collection('appdata').doc('bundleStatus');
+    var patch={};
+    patch['statuses.'+bundle.id]=payload;
+    return ref.set(patch,{merge:true});
+  }
+
+  function mergeFastBundleStatuses(statuses){
+    if(!statuses || typeof statuses!=='object') return false;
+    var changed=false;
+    Object.keys(statuses).forEach(function(id){
+      var patch=statuses[id];
+      if(!patch || !patch.status) return;
+      var b=state.bundles.find(function(x){return x&&x.id===id;});
+      if(!b) return;
+      var incomingAt=Number(patch.updatedAt)||0;
+      var localAt=Number(b.updatedAt)||0;
+      if(incomingAt && localAt && incomingAt < localAt) return;
+      Object.keys(patch).forEach(function(k){
+        if(patch[k]!==undefined) b[k]=patch[k];
+      });
+      changed=true;
+    });
+    return changed;
+  }
   function persistComplaints(){ return saveJSON('complaints', state.complaints); }
   function persistRolls(){ return saveJSON('rolls', state.rolls); }
   function persistSalesTotals(){ return db.collection('appdata').doc('salesTotals').set({managerSales: state.managerSales, ntoSales: state.ntoSales, salesResetAt: state.salesResetAt, customerSalesResetAt: state.customerSalesResetAt||{}, otherManagerSalesResetAt: state.otherManagerSalesResetAt||{}},{merge:true}); }
@@ -2744,6 +2795,10 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       : {type:'process', bundleId:bundleId, previousStatus:previousStatus, draftComment:''};
     render();
 
+    // Publish the visible processing state immediately; do not make the
+    // customer's UI wait for the large bundles-array transaction.
+    publishBundleStatusFast(b).catch(function(err){console.warn('fast bundle claim failed',err);});
+
     var bundlesRef=db.collection('appdata').doc('bundles');
     db.runTransaction(function(tx){
       return tx.get(bundlesRef).then(function(snap){
@@ -2852,6 +2907,9 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       local.salesAmount=amount;
       local.salesLedgerKey=bundleId+'|'+approvalId+'|'+actionAt;
     }
+    // Push the final status through the small fast channel first. This makes
+    // approved/rejected visible to the customer immediately.
+    publishBundleStatusFast(local).catch(function(err){console.warn('fast bundle decision failed',err);});
     state.modal=null;
     render();
     showToast(decision==='approved'?'بنډل فعاله شو؛ معلومات ثبتېږي...':'بنډل رد شو؛ معلومات ثبتېږي...');
@@ -2961,6 +3019,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     b.processingBy = null;
     b.prevStatusBeforeProcess = null;
     b.ntoSeen = false;
+    b.updatedAt = Date.now();
+    publishBundleStatusFast(b).catch(function(err){console.warn('fast deactivate failed',err);});
     // Close immediately; persist the decision in the background.
     state.modal = null;
     render();
@@ -3007,6 +3067,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     b.ntoSeen=true;
     b.waitStartAt=now;
     b.updatedAt=now;
+    publishBundleStatusFast(b).catch(function(err){console.warn('fast resubmit failed',err);});
     state.modal=null;
     render();
     showToast('بنډل بیا لېږل کېږي...');
@@ -4336,6 +4397,12 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           }
         }
         render();
+      }
+    }));
+    state.unsubs.push(db.collection('appdata').doc('bundleStatus').onSnapshot(function(snap){
+      if(snap.exists){
+        var changed=mergeFastBundleStatuses((snap.data()||{}).statuses||{});
+        if(changed) renderUnlessTyping();
       }
     }));
     state.unsubs.push(db.collection('appdata').doc('bundles').onSnapshot(function(snap){
