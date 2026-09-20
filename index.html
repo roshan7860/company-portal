@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.9">
+<meta name="app-build-version" content="1.7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1154,6 +1154,13 @@
       // IMPORTANT: do not compare the customer's and manager's phone clocks.
       // Their clocks can differ by minutes. Firestore realtime delivery order
       // is authoritative for this small status channel.
+      var oldPatch=state.fastBundleStatuses[id];
+      var incomingTime=Number(patch.updatedAt)||0;
+      var oldTime=oldPatch ? (Number(oldPatch.updatedAt)||0) : 0;
+      // A listener can first receive Firestore's cached/older snapshot after
+      // being reattached. Never let that older snapshot overwrite a newer
+      // status that the customer has already received.
+      if(oldPatch && oldTime>incomingTime) return;
       state.fastBundleStatuses[id]=patch;
       var b=state.bundles.find(function(x){return x&&x.id===id;});
       if(!b) return;
@@ -1175,7 +1182,11 @@
       // The large bundles document may arrive a little later than the fast
       // status document. Never let that older snapshot temporarily move the
       // customer's status backwards.
-      if(incoming.status!==patch.status){
+      var incomingTime=Number(incoming.updatedAt)||0;
+      var patchTime=Number(patch.updatedAt)||0;
+      // The main bundles document may still be an older cached snapshot.
+      // Only let it replace the fast status after it has caught up in time.
+      if(incoming.status!==patch.status || incomingTime<patchTime){
         var merged={};
         Object.keys(incoming).forEach(function(k){merged[k]=incoming[k];});
         Object.keys(patch).forEach(function(k){if(patch[k]!==undefined) merged[k]=patch[k];});
@@ -4414,19 +4425,23 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     // documents instead of a collection-wide query so a decision (approved/
     // rejected/deactivated) reaches the customer's screen without waiting
     // for other bundle-status documents to be scanned/updated.
-    state.fastStatusUnsubs = [];
+    // Keep one realtime listener per bundle. Do NOT unsubscribe/re-subscribe
+    // all listeners whenever the large bundles document changes: doing that
+    // can make Firestore deliver its cached old status again and temporarily
+    // overwrite the customer's new status.
+    state.fastStatusUnsubs = state.fastStatusUnsubs || [];
+    state.fastStatusListenerIds = state.fastStatusListenerIds || {};
     function refreshDirectBundleStatusListeners(){
       if(!state.currentUser || !Array.isArray(state.bundles)) return;
-      if(!state.fastStatusUnsubs) state.fastStatusUnsubs=[];
-      state.fastStatusUnsubs.forEach(function(unsub){ try{unsub();}catch(e){} });
-      state.fastStatusUnsubs=[];
       var mine = state.bundles.filter(function(b){
         if(!b || !b.id) return false;
         if(state.currentUser.role==='nto') return b.ntoUsername===state.currentUser.username;
         return true;
       });
       mine.forEach(function(b){
-        var ref=db.collection('appdata').doc('bundleStatus_'+String(b.id));
+        var id=String(b.id);
+        if(state.fastStatusListenerIds[id]) return;
+        var ref=db.collection('appdata').doc('bundleStatus_'+id);
         var unsub=ref.onSnapshot(function(snap){
           if(!snap.exists) return;
           var d=snap.data()||{};
@@ -4434,6 +4449,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           var one={}; one[d.bundleId]=d;
           if(mergeFastBundleStatuses(one)) renderUnlessTyping();
         });
+        state.fastStatusListenerIds[id]=true;
         state.fastStatusUnsubs.push(unsub);
       });
     }
