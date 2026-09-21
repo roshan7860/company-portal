@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.7">
+<meta name="app-build-version" content="1.8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -298,6 +298,28 @@
     position:absolute;top:14px;left:14px;
   }
   .modal-card{position:relative;}
+
+  /* ---------- Daily sales comparison report ---------- */
+  .sales-compare-card{max-width:620px !important;width:100%;}
+  .sales-compare-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
+  .sales-compare-head .who{font-size:16px;font-weight:800;color:var(--ink);}
+  .sales-compare-head .subwho{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .sales-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sales-day-box{border:1px solid var(--border);border-radius:14px;padding:15px;background:#fbfcfd;}
+  .sales-day-box.today{border-color:rgba(46,125,91,.25);background:var(--ok-soft);}
+  .sales-day-box.yesterday{border-color:rgba(46,95,163,.20);background:var(--info-soft);}
+  .sales-day-label{font-size:12px;color:var(--ink-soft);font-weight:700;}
+  .sales-day-value{font-size:23px;font-weight:900;margin-top:6px;direction:ltr;text-align:right;}
+  .sales-day-count{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .sales-change{margin-top:14px;border-radius:14px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);}
+  .sales-change-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .sales-change-label{font-size:13px;color:var(--ink-soft);font-weight:700;}
+  .sales-change-value{font-size:21px;font-weight:900;direction:ltr;}
+  .sales-change-value.positive{color:var(--ok);}
+  .sales-change-value.negative{color:var(--danger);}
+  .sales-change-value.neutral{color:var(--ink-soft);}
+  .sales-change-note{font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.7;}
+  @media(max-width:700px){.sales-compare-card{padding:18px 14px !important;}.sales-compare-grid{grid-template-columns:1fr;}}
   .proc-number-box{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;}
   .proc-number-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .proc-number{font-size:18px;font-weight:800;color:var(--ink);letter-spacing:.3px;}
@@ -2792,7 +2814,10 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var now = Date.now();
     var soonest = null;
     state.bundles.forEach(function(b){
-      if(b.status==='approved' || b.status==='rejected' || b.status==='deactivated') return;
+      // Only a still-waiting bundle may trigger the 40-second escalation.
+      // Once a manager has started processing or decided it, other managers
+      // must remain completely silent for that bundle.
+      if(b.status!=='pending' && b.status!=='resubmit') return;
       if(isBundleClaimableByManager(b, state.currentUser.username)) return;
       var startedAt = b.waitStartAt || b.createdAt || 0;
       var remaining = (startedAt + ASSIGN_WAIT_MS) - now;
@@ -3595,6 +3620,103 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     }
   }
 
+  // ---------------- DAILY SALES COMPARISON REPORT ----------------
+  function localDayStartMs(offsetDays){
+    var now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate()+offsetDays).getTime();
+  }
+
+  function getDailySalesForUser(username, role){
+    var startToday=localDayStartMs(0), startTomorrow=localDayStartMs(1), startYesterday=localDayStartMs(-1);
+    var yesterday={total:0,count:0}, today={total:0,count:0};
+
+    state.bundles.forEach(function(b){
+      if(!b || b.status!=='approved') return;
+      var ts=Number(b.actionedAt)||0;
+      if(!ts) return;
+
+      var matches=false;
+      if(role==='manager'){
+        var manager=b.actionedBy;
+        if(!manager || !state.users.some(function(u){return u.username===manager && u.role==='manager';})){
+          manager=findAssignedManager(b.ntoUsername);
+        }
+        matches=manager===username;
+      }else if(role==='nto'){
+        matches=b.ntoUsername===username;
+      }
+      if(!matches) return;
+
+      var resetAt=0;
+      if(role==='manager'){
+        resetAt=(state.salesResetAt && state.salesResetAt.manager && state.salesResetAt.manager[username])||0;
+      }else{
+        resetAt=(state.salesResetAt && state.salesResetAt.nto && state.salesResetAt.nto[username])||0;
+        resetAt=Math.max(Number(resetAt)||0,Number((state.customerSalesResetAt||{})[username]||0));
+      }
+      if(resetAt && ts<=Number(resetAt)) return;
+
+      var amount=extractNumber(b.comment||'');
+      if(ts>=startToday && ts<startTomorrow){
+        today.total+=amount; today.count++;
+      }else if(ts>=startYesterday && ts<startToday){
+        yesterday.total+=amount; yesterday.count++;
+      }
+    });
+    return {yesterday:yesterday,today:today};
+  }
+
+  function renderDailySalesReportModal(username, role){
+    var u=state.users.find(function(x){return x.username===username;});
+    if(!u) return;
+
+    var report=getDailySalesForUser(username,role);
+    var y=report.yesterday,t=report.today;
+    var diff=t.total-y.total;
+    var percent=(y.total===0 ? (t.total>0?100:0) : (diff/y.total)*100);
+    var cls=percent>0?'positive':(percent<0?'negative':'neutral');
+    var pct=(percent>0?'+':'')+percent.toFixed(2)+'%';
+    var diffText=(diff>0?'+':'')+diff.toLocaleString();
+
+    var layer=document.createElement('div');
+    layer.className='modal-backdrop';
+    layer.innerHTML=
+      '<div class="modal-card sales-compare-card">'+
+        '<div class="sales-compare-head">'+
+          '<div><div class="who">'+escapeHtml(username)+'</div>'+
+          '<div class="subwho">'+(role==='manager'?'د مدیر د مشتریانو فروشات':'د مشتری فروشات')+'</div></div>'+
+          '<button class="icon-btn" id="sales-report-close" title="تړل">'+uiIcon('close')+'</button>'+
+        '</div>'+
+        '<div class="sales-compare-grid">'+
+          '<div class="sales-day-box yesterday"><div class="sales-day-label">د پرون ورځې فروشات</div>'+
+          '<div class="sales-day-value">'+y.total.toLocaleString()+' افغانۍ</div>'+
+          '<div class="sales-day-count">'+y.count+' بنډل</div></div>'+
+          '<div class="sales-day-box today"><div class="sales-day-label">د نن ورځې فروشات</div>'+
+          '<div class="sales-day-value">'+t.total.toLocaleString()+' افغانۍ</div>'+
+          '<div class="sales-day-count">'+t.count+' بنډل</div></div>'+
+        '</div>'+
+        '<div class="sales-change">'+
+          '<div class="sales-change-row"><div class="sales-change-label">د پرون په پرتله د نن ورځې توپیر</div>'+
+          '<div class="sales-change-value '+cls+'">'+diffText+' افغانۍ</div></div>'+
+          '<div class="sales-change-row" style="margin-top:10px;"><div class="sales-change-label">فیصدي بدلون</div>'+
+          '<div class="sales-change-value '+cls+'">'+pct+'</div></div>'+
+          '<div class="sales-change-note">'+
+          (y.total===0&&t.total>0?'پرون فروشات صفر وو؛ نو د نن ورځې لپاره ۱۰۰٪ زیاتوالی ښودل شوی.':
+           y.total===0&&t.total===0?'پرون او نن دواړه فروشات صفر دي؛ فیصدي بدلون ۰٪ دی.':
+           diff>0?'نن فروشات د پرون په پرتله زیات شوي دي.':
+           diff<0?'نن فروشات د پرون په پرتله کم شوي دي.':'د پرون او نن فروشات برابر دي.')+
+          '</div>'+
+        '</div>'+
+        '<div class="modal-actions"><button class="btn btn-ghost btn-block" id="sales-report-close-bottom">تړل</button></div>'+
+      '</div>';
+
+    document.body.appendChild(layer);
+    function closeReport(){layer.remove();}
+    document.getElementById('sales-report-close').onclick=closeReport;
+    document.getElementById('sales-report-close-bottom').onclick=closeReport;
+    layer.addEventListener('click',function(e){if(e.target===layer)closeReport();});
+  }
+
   // ---------------- USERS SECTIONS (managers / ntos) ----------------
   function renderUsersSection(body, targetRole, canToggle, canDelete, viewerRole){
     // Managers only see the customer accounts THEY created; other managers'
@@ -3679,7 +3801,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           '<td data-label="حالت">'+statusBadge(u.status==='enabled'?'enabled':(u.status||'disabled'))+(u.adminReviewComment ? '<div class="small-muted" style="margin-top:5px;">'+escapeHtml(u.adminReviewComment)+'</div>' : '')+'</td>'+
           (canToggle ? '<td>'+ (u.status==='pending_admin' ? '<button class="btn btn-sm btn-ok" data-approve-user="'+u.username+'">تایید</button> <button class="btn btn-sm btn-danger" data-reject-user="'+u.username+'">رد</button>' : '<button class="btn btn-sm '+(u.status==='enabled'?'btn-danger':'btn-ok')+'" data-toggle="'+u.username+'">'+(u.status==='enabled'?'غیر فعالول':'فعالول')+'</button>') +'</td>' : (viewerRole==='manager' && isNto && u.status==='rejected_admin' ? '<td><button class="btn btn-sm btn-info" data-resubmit-user="'+u.username+'">بیا ځلې اډمین ته لیږل</button></td>' : ''))+
           (canDelete ? '<td><button class="icon-btn-sm" data-edit-user="'+u.username+'" title="ایډیټ">'+uiIcon('edit')+'</button></td>' : '')+
-          (canSeeInfo ? '<td><button class="icon-btn-sm" data-info-user="'+u.username+'" title="معلومات">'+uiIcon('eye')+'</button></td>' : '')+
+          (canSeeInfo ? '<td><button class="icon-btn-sm" data-sales-report-user="'+u.username+'" data-sales-report-role="'+targetRole+'" title="د پرون او نن فروشاتو راپور">'+uiIcon('eye')+'</button></td>' : '')+
           (canDelete ? '<td><button class="icon-btn-sm" data-delete-user="'+u.username+'" title="ډیلیټ">'+uiIcon('delete')+'</button></td>' : '')+
         '</tr>';
       }).join('')+
@@ -3691,10 +3813,12 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     });
 
     if(canSeeInfo){
-      Array.prototype.forEach.call(document.querySelectorAll('[data-info-user]'), function(el){
+      Array.prototype.forEach.call(document.querySelectorAll('[data-sales-report-user]'), function(el){
         el.onclick = function(){
-          state.modal = {type:'user-info', username: el.getAttribute('data-info-user'), viewerRole: viewerRole};
-          render();
+          renderDailySalesReportModal(
+            el.getAttribute('data-sales-report-user'),
+            el.getAttribute('data-sales-report-role') || targetRole
+          );
         };
       });
     }
@@ -4594,9 +4718,15 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   // bundle that wasn't theirs opens up to all managers ----------------
   function checkForManagerEscalations(){
     if(!state.currentUser || state.currentUser.role!=='manager') return;
+    var now = Date.now();
     var opened = state.bundles.filter(function(b){
-      if(b.status==='approved' || b.status==='rejected' || b.status==='deactivated') return false;
+      // Escalation is allowed ONLY while the bundle is still waiting.
+      // If the assigned manager has already started processing it, or has
+      // approved/rejected/deactivated it, never notify other managers.
+      if(b.status!=='pending' && b.status!=='resubmit') return false;
       if(state.notifiedBundleIds[b.id]) return false;
+      var startedAt = Number(b.waitStartAt || b.createdAt || 0);
+      if(!startedAt || (now - startedAt) < ASSIGN_WAIT_MS) return false;
       return isBundleClaimableByManager(b, state.currentUser.username);
     });
     if(opened.length){
