@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.19">
+<meta name="app-build-version" content="1.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -839,6 +839,74 @@
 }
 </style>
 
+
+<style>
+/* ---------- Manager daily sales comparison card ---------- */
+.manager-sales-detail-grid{direction:ltr;}
+.manager-sales-detail-grid .sales-detail-card{direction:rtl;}
+.manager-daily-card{
+  min-height:145px;
+  padding:20px 22px;
+  justify-content:flex-start;
+}
+.manager-daily-title{
+  font-size:16px;
+  line-height:1.5;
+  font-weight:800;
+  color:#000;
+  margin-bottom:6px;
+  text-align:right;
+}
+.manager-daily-chart{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  align-items:end;
+  min-height:92px;
+}
+.manager-daily-bar-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  min-height:88px;
+}
+.manager-daily-bar-value,.manager-daily-bar-label,.manager-daily-diff{
+  font-size:12px;
+  line-height:1.4;
+  font-weight:800;
+  color:#000;
+  text-align:center;
+}
+.manager-daily-bar-value{margin-bottom:4px;}
+.manager-daily-bar{
+  width:42px;
+  min-height:10px;
+  max-height:72px;
+  border-radius:8px 8px 3px 3px;
+}
+.manager-daily-bar.today{background:#2e7d5b;}
+.manager-daily-bar.yesterday{background:#6b7280;}
+.manager-daily-bar-label{margin-top:4px;}
+.manager-daily-diff{
+  margin-top:5px;
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.manager-daily-diff .positive{color:#2e7d5b;}
+.manager-daily-diff .negative{color:#b3432b;}
+.manager-daily-diff .neutral{color:#000;}
+.manager-total-sales-card{justify-content:center;}
+@media(max-width:700px){
+  .manager-sales-detail-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .manager-daily-card{min-height:128px;padding:15px 13px;border-radius:14px;}
+  .manager-daily-title{font-size:16px;}
+  .manager-daily-bar-value,.manager-daily-bar-label,.manager-daily-diff{font-size:12px;}
+  .manager-total-sales-card{min-height:128px;padding:15px 13px;border-radius:14px;}
+}
+</style>
 <style>
 /* ---------- Customer daily sales comparison ---------- */
 .customer-daily-card{
@@ -4207,6 +4275,67 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     return {today:today, yesterday:yesterdayTotal, diff:diff, percent:percent};
   }
 
+  // Daily manager sales comparison: same approved-bundle source as manager totals,
+  // grouped by local date and respecting the manager's reset timestamp.
+  function managerDailySales(managerUsername){
+    var now = new Date();
+    var todayKey = dateKeyOf(now.getTime());
+    var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
+    var yesterdayKey = dateKeyOf(yesterday.getTime());
+    var resetAt = (state.salesResetAt && state.salesResetAt.manager && state.salesResetAt.manager[managerUsername]) || 0;
+    var today = 0, yesterdayTotal = 0;
+
+    state.bundles.forEach(function(b){
+      if(!b || b.actionedBy!==managerUsername || b.status!=='approved') return;
+      var ts = Number(b.actionedAt || b.approvedAt || 0);
+      if(!ts || (resetAt && ts <= Number(resetAt))) return;
+      var key = dateKeyOf(ts);
+      var amount = Number(b.salesAmount);
+      if(!isFinite(amount) || amount<0) amount = extractNumber(b.comment || '');
+      if(key===todayKey) today += amount;
+      else if(key===yesterdayKey) yesterdayTotal += amount;
+    });
+
+    var diff = today - yesterdayTotal;
+    var percent = yesterdayTotal>0 ? (diff / yesterdayTotal) * 100 : null;
+    return {today:today, yesterday:yesterdayTotal, diff:diff, percent:percent};
+  }
+
+  function renderManagerDailySalesCard(managerUsername){
+    var d = managerDailySales(managerUsername);
+    var max = Math.max(d.today, d.yesterday, 1);
+    var todayHeight = Math.max(12, Math.round((d.today/max)*95));
+    var yesterdayHeight = Math.max(12, Math.round((d.yesterday/max)*95));
+    var lang = state.language || 'ps';
+    var text = lang==='en' ? {title:'Daily Sales Comparison',today:'Today',yesterday:'Yesterday',difference:'Difference'} :
+      (lang==='fa' ? {title:'مقایسه فروش روزانه',today:'امروز',yesterday:'دیروز',difference:'تفاوت'} :
+      {title:'د ورځنیو فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
+    var currency = lang==='en' ? 'AFN' : 'افغانۍ';
+    var percentText = d.percent===null ? '—' : ((d.percent>0?'+':'') + d.percent.toFixed(1) + '%');
+    var diffClass = d.diff>0 ? 'positive' : (d.diff<0 ? 'negative' : 'neutral');
+    var signText = d.diff>0 ? '+' : '';
+    return '<div class="manager-daily-card sales-detail-card">'+
+      '<div class="manager-daily-title">'+text.title+'</div>'+
+      '<div class="manager-daily-chart">'+
+        '<div class="manager-daily-bar-wrap">'+
+          '<div class="manager-daily-bar-value">'+d.yesterday.toLocaleString()+' '+currency+'</div>'+
+          '<div class="manager-daily-bar yesterday" style="height:'+yesterdayHeight+'px"></div>'+
+          '<div class="manager-daily-bar-label">'+text.yesterday+'</div>'+
+        '</div>'+
+        '<div class="manager-daily-bar-wrap">'+
+          '<div class="manager-daily-bar-value">'+d.today.toLocaleString()+' '+currency+'</div>'+
+          '<div class="manager-daily-bar today" style="height:'+todayHeight+'px"></div>'+
+          '<div class="manager-daily-bar-label">'+text.today+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="manager-daily-diff">'+
+        '<span>'+text.difference+':</span>'+
+        '<span class="'+diffClass+'">'+signText+d.diff.toLocaleString()+' '+currency+'</span>'+
+        '<span class="'+diffClass+'">('+percentText+')</span>'+
+      '</div>'+
+    '</div>';
+  }
+
   function renderNtoDailySalesCard(ntoUsername){
     var d = ntoDailySales(ntoUsername);
     var max = Math.max(d.today, d.yesterday, 1);
@@ -4215,7 +4344,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var lang = state.language || 'ps';
     var text = lang==='en' ? {title:'Today vs Yesterday Sales',today:'Today',yesterday:'Yesterday',difference:'Difference'} :
       (lang==='fa' ? {title:'مقایسه فروش امروز و دیروز',today:'امروز',yesterday:'دیروز',difference:'تفاوت'} :
-      {title:'د نن او تېرې ورځې د فروشاتو پرتله',today:'نن',yesterday:'تېره ورځ',difference:'توپیر'});
+      {title:'د نن او تېرې ورځې د فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
     var percentText = d.percent===null ? '—' : ((d.percent>0?'+':'') + d.percent.toFixed(1) + '%');
     var diffClass = d.diff>0 ? 'positive' : (d.diff<0 ? 'negative' : 'neutral');
     var signText = d.diff>0 ? '+' : '';
@@ -4428,7 +4557,6 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
               '<span class="sales-summary-count">'+Number(s.count || 0).toLocaleString()+'</span>'+
               '<span class="sales-summary-unit">بنډلونه</span>'+
             '</div>'+
-            '<div class="sales-summary-amount">'+Number(s.total || 0).toLocaleString()+' افغانۍ</div>'+
           '</div>'+
           '<div class="sales-summary-card inactive">'+
             '<div class="sales-summary-label">غیر فعاله شوي بنډلونه</div>'+
@@ -4436,6 +4564,13 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
               '<span class="sales-summary-count">'+Number(managerInactiveCount || 0).toLocaleString()+'</span>'+
               '<span class="sales-summary-unit">بنډلونه</span>'+
             '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="sales-detail-grid manager-sales-detail-grid">'+
+          renderManagerDailySalesCard(state.currentUser.username)+
+          '<div class="sales-detail-card manager-total-sales-card">'+
+            '<div class="sales-detail-label">فروشات</div>'+
+            '<div class="sales-detail-value">'+Number(s.total || 0).toLocaleString()+' افغانۍ</div>'+
           '</div>'+
         '</div>'+
         '<div class="card">'+
