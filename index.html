@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.9">
+<meta name="app-build-version" content="1.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -836,6 +836,92 @@
   .sales-summary-card .sales-summary-unit,
   .sales-summary-card .sales-summary-amount,
   .sales-detail-card .sales-detail-value{font-size:15px !important;}
+}
+</style>
+
+<style>
+/* ---------- Customer daily sales comparison ---------- */
+.customer-daily-card{
+  margin-top:16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:20px 22px;
+  box-shadow:0 8px 24px rgba(24,34,52,.045);
+}
+.customer-daily-title{
+  margin:0 0 18px 0;
+  font-size:16px;
+  line-height:1.5;
+  font-weight:800;
+  color:#000;
+}
+.customer-daily-chart{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  align-items:end;
+  min-height:210px;
+  padding:8px 4px 0;
+}
+.customer-daily-bar-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  min-height:200px;
+}
+.customer-daily-bar-value{
+  font-size:15px;
+  font-weight:800;
+  color:#000;
+  margin-bottom:8px;
+  text-align:center;
+}
+.customer-daily-bar{
+  width:min(92px,55%);
+  min-height:12px;
+  border-radius:12px 12px 4px 4px;
+  background:#101826;
+  transition:height .25s ease;
+}
+.customer-daily-bar.today{background:#2e7d5b;}
+.customer-daily-bar.yesterday{background:#6b7280;}
+.customer-daily-bar-label{
+  margin-top:9px;
+  font-size:15px;
+  line-height:1.5;
+  font-weight:800;
+  color:#000;
+  text-align:center;
+}
+.customer-daily-diff{
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  font-size:15px;
+  font-weight:800;
+  color:#000;
+  text-align:center;
+}
+.customer-daily-diff .positive,.customer-daily-diff .negative,.customer-daily-diff .neutral{
+  font-weight:900;
+}
+.customer-daily-diff .positive{color:#2e7d5b;}
+.customer-daily-diff .negative{color:#b3432b;}
+.customer-daily-diff .neutral{color:#000;}
+@media(max-width:700px){
+  .customer-daily-card{padding:17px 14px;border-radius:16px;}
+  .customer-daily-title{font-size:16px;}
+  .customer-daily-chart{gap:10px;min-height:190px;}
+  .customer-daily-bar-wrap{min-height:180px;}
+  .customer-daily-bar{width:72px;}
+  .customer-daily-bar-value,.customer-daily-bar-label,.customer-daily-diff{font-size:15px;}
 }
 </style>
 
@@ -4094,6 +4180,67 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     return s ? {total:s.total, count:s.count} : {total:0, count:0};
   }
 
+  // Daily customer sales: uses the same approved-bundle sales source as the
+  // customer total, but groups the customer's approved sales by local date.
+  function ntoDailySales(ntoUsername){
+    var now = new Date();
+    var todayKey = dateKeyOf(now.getTime());
+    var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
+    var yesterdayKey = dateKeyOf(yesterday.getTime());
+    var resetAt = (state.customerSalesResetAt && state.customerSalesResetAt[ntoUsername]) ||
+                  (state.salesResetAt && state.salesResetAt.nto && state.salesResetAt.nto[ntoUsername]) || 0;
+    var today = 0, yesterdayTotal = 0;
+
+    state.bundles.forEach(function(b){
+      if(!b || b.ntoUsername!==ntoUsername || b.status!=='approved') return;
+      var ts = Number(b.actionedAt || b.approvedAt || 0);
+      if(!ts || (resetAt && ts <= Number(resetAt))) return;
+      var key = dateKeyOf(ts);
+      var amount = Number(b.salesAmount);
+      if(!isFinite(amount) || amount<0) amount = extractNumber(b.comment || '');
+      if(key===todayKey) today += amount;
+      else if(key===yesterdayKey) yesterdayTotal += amount;
+    });
+
+    var diff = today - yesterdayTotal;
+    var percent = yesterdayTotal>0 ? (diff / yesterdayTotal) * 100 : null;
+    return {today:today, yesterday:yesterdayTotal, diff:diff, percent:percent};
+  }
+
+  function renderNtoDailySalesCard(ntoUsername){
+    var d = ntoDailySales(ntoUsername);
+    var max = Math.max(d.today, d.yesterday, 1);
+    var todayHeight = Math.max(12, Math.round((d.today/max)*145));
+    var yesterdayHeight = Math.max(12, Math.round((d.yesterday/max)*145));
+    var lang = state.language || 'ps';
+    var text = lang==='en' ? {title:'Today vs Yesterday Sales',today:'Today',yesterday:'Yesterday',difference:'Difference'} :
+      (lang==='fa' ? {title:'مقایسه فروش امروز و دیروز',today:'امروز',yesterday:'دیروز',difference:'تفاوت'} :
+      {title:'د نن او تېرې ورځې د فروشاتو پرتله',today:'نن',yesterday:'تېره ورځ',difference:'توپیر'});
+    var percentText = d.percent===null ? '—' : ((d.percent>0?'+':'') + d.percent.toFixed(1) + '%');
+    var diffClass = d.diff>0 ? 'positive' : (d.diff<0 ? 'negative' : 'neutral');
+    var signText = d.diff>0 ? '+' : '';
+    return '<div class="customer-daily-card">'+
+      '<div class="customer-daily-title">'+text.title+'</div>'+
+      '<div class="customer-daily-chart">'+
+        '<div class="customer-daily-bar-wrap">'+
+          '<div class="customer-daily-bar-value">'+d.yesterday.toLocaleString()+' '+(lang==='en'?'AFN':'افغانۍ')+'</div>'+
+          '<div class="customer-daily-bar yesterday" style="height:'+yesterdayHeight+'px"></div>'+
+          '<div class="customer-daily-bar-label">'+text.yesterday+'</div>'+
+        '</div>'+
+        '<div class="customer-daily-bar-wrap">'+
+          '<div class="customer-daily-bar-value">'+d.today.toLocaleString()+' '+(lang==='en'?'AFN':'افغانۍ')+'</div>'+
+          '<div class="customer-daily-bar today" style="height:'+todayHeight+'px"></div>'+
+          '<div class="customer-daily-bar-label">'+text.today+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="customer-daily-diff">'+
+        '<span>'+text.difference+':</span>'+
+        '<span class="'+diffClass+'">'+signText+d.diff.toLocaleString()+' '+(lang==='en'?'AFN':'افغانۍ')+'</span>'+
+        '<span class="'+diffClass+'">('+percentText+')</span>'+
+      '</div>'+
+    '</div>';
+  }
+
   // ---------------- ADMIN: PER-NTO REPORT ----------------
   function renderNtoReportSection(body, headerRow, role){
     role = role || 'admin';
@@ -4345,7 +4492,8 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
             '<div class="sales-detail-label">کمیشن</div>'+
             '<div class="sales-detail-value">'+commissionAmount.toLocaleString()+' افغانۍ</div>'+
           '</div>'+
-        '</div>';
+        '</div>'+
+        renderNtoDailySalesCard(state.currentUser.username);
     }
   }
 
