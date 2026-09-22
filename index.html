@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.9">
+<meta name="app-build-version" content="1.10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -360,6 +360,46 @@
     .sales-summary-count{font-size:26px;}
     .sales-summary-unit{font-size:11px;}
     .sales-summary-amount{font-size:15px;margin-top:8px;}
+  }
+
+  /* ---------- Sales + commission detail cards ---------- */
+  .sales-detail-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+    margin-top:0;
+    margin-bottom:20px;
+    direction:rtl;
+  }
+  .sales-detail-card{
+    min-height:145px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:#fff;
+    padding:20px 22px;
+    direction:rtl;
+    box-shadow:0 7px 22px rgba(24,34,52,.055);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .sales-detail-label{
+    font-size:14px;
+    font-weight:800;
+    color:#000;
+    margin-bottom:8px;
+  }
+  .sales-detail-value{
+    font-size:22px;
+    line-height:1.2;
+    font-weight:900;
+    color:#000;
+  }
+  @media(max-width:700px){
+    .sales-detail-grid{grid-template-columns:1fr 1fr;gap:10px;}
+    .sales-detail-card{min-height:128px;padding:15px 13px;border-radius:14px;}
+    .sales-detail-label{font-size:12px;}
+    .sales-detail-value{font-size:18px;}
   }
 
   /* ---------- Modal ---------- */
@@ -4213,7 +4253,6 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
               '<span class="sales-summary-count">'+Number(managerInactiveCount || 0).toLocaleString()+'</span>'+
               '<span class="sales-summary-unit">بنډلونه</span>'+
             '</div>'+
-            '<div class="sales-summary-amount">غیر فعال</div>'+
           '</div>'+
         '</div>'+
         '<div class="card">'+
@@ -4252,7 +4291,6 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
               '<span class="sales-summary-count">'+Number(ns.count || 0).toLocaleString()+'</span>'+
               '<span class="sales-summary-unit">بنډلونه</span>'+
             '</div>'+
-            '<div class="sales-summary-amount">'+Number(ns.total || 0).toLocaleString()+' افغانۍ</div>'+
           '</div>'+
           '<div class="sales-summary-card inactive">'+
             '<div class="sales-summary-label">غیر فعاله شوي بنډلونه</div>'+
@@ -4260,11 +4298,17 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
               '<span class="sales-summary-count">'+Number(ntoInactiveCount || 0).toLocaleString()+'</span>'+
               '<span class="sales-summary-unit">بنډلونه</span>'+
             '</div>'+
-            '<div class="sales-summary-amount">غیر فعال</div>'+
           '</div>'+
         '</div>'+
-        '<div class="card">'+
-          '<div style="margin-top:0;font-size:16px;font-weight:800;">کمیشن: '+commissionAmount.toLocaleString()+' افغانۍ</div>'+
+        '<div class="sales-detail-grid">'+
+          '<div class="sales-detail-card">'+
+            '<div class="sales-detail-label">فروشات</div>'+
+            '<div class="sales-detail-value">'+Number(ns.total || 0).toLocaleString()+' افغانۍ</div>'+
+          '</div>'+
+          '<div class="sales-detail-card">'+
+            '<div class="sales-detail-label">کمیشن</div>'+
+            '<div class="sales-detail-value">'+commissionAmount.toLocaleString()+' افغانۍ</div>'+
+          '</div>'+
         '</div>';
     }
   }
