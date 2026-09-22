@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.9">
+<meta name="app-build-version" content="1.29">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -841,6 +841,26 @@
 
 
 <style>
+/* ---------- Equal card sizes on Manager Sales page ---------- */
+.manager-sales-summary-grid .sales-summary-card,
+.manager-sales-detail-grid .sales-detail-card{
+  height:190px !important;
+  min-height:190px !important;
+  max-height:190px !important;
+  box-sizing:border-box !important;
+}
+.manager-sales-detail-grid{
+  align-items:stretch !important;
+}
+@media(max-width:700px){
+  .manager-sales-summary-grid .sales-summary-card,
+  .manager-sales-detail-grid .sales-detail-card{
+    height:160px !important;
+    min-height:160px !important;
+    max-height:160px !important;
+  }
+}
+
 /* ---------- Manager daily sales comparison card ---------- */
 .manager-sales-detail-grid{direction:ltr;}
 .manager-sales-detail-grid .sales-detail-card{direction:rtl;}
@@ -4309,7 +4329,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var lang = state.language || 'ps';
     var text = lang==='en' ? {title:'Daily Sales Comparison',today:'Today',yesterday:'Yesterday',difference:'Difference'} :
       (lang==='fa' ? {title:'مقایسه فروش روزانه',today:'امروز',yesterday:'دیروز',difference:'تفاوت'} :
-      {title:'د ورځنیو فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
+      {title:'نن ورځې او تېرې ورځې د فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
     var currency = lang==='en' ? 'AFN' : 'افغانۍ';
     var percentText = d.percent===null ? '—' : ((d.percent>0?'+':'') + d.percent.toFixed(1) + '%');
     var diffClass = d.diff>0 ? 'positive' : (d.diff<0 ? 'negative' : 'neutral');
@@ -4344,7 +4364,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var lang = state.language || 'ps';
     var text = lang==='en' ? {title:'Today vs Yesterday Sales',today:'Today',yesterday:'Yesterday',difference:'Difference'} :
       (lang==='fa' ? {title:'مقایسه فروش امروز و دیروز',today:'امروز',yesterday:'دیروز',difference:'تفاوت'} :
-      {title:'د نن او تېرې ورځې د فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
+      {title:'نن ورځې او تېرې ورځې د فروشاتو پرتله',today:'نن ورځ',yesterday:'تېره ورځ',difference:'توپیر'});
     var percentText = d.percent===null ? '—' : ((d.percent>0?'+':'') + d.percent.toFixed(1) + '%');
     var diffClass = d.diff>0 ? 'positive' : (d.diff<0 ? 'negative' : 'neutral');
     var signText = d.diff>0 ? '+' : '';
@@ -4550,7 +4570,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       }).length;
 
       body.innerHTML =
-        '<div class="sales-summary-grid">'+
+        '<div class="sales-summary-grid manager-sales-summary-grid">'+
           '<div class="sales-summary-card">'+
             '<div class="sales-summary-label">فعاله شوي بنډلونه</div>'+
             '<div class="sales-summary-main">'+
