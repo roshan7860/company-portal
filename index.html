@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.10">
+<meta name="app-build-version" content="1.11">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -312,7 +312,8 @@
   }
   .sales-summary-card.inactive:before{background:var(--danger);}
   .sales-summary-label{
-    font-size:14px;
+    font-size:16px;
+    line-height:1.5;
     font-weight:800;
     color:var(--ink-soft);
     margin-bottom:9px;
@@ -324,20 +325,22 @@
     flex-wrap:wrap;
   }
   .sales-summary-count{
-    font-size:32px;
-    line-height:1;
+    font-size:24px;
+    line-height:1.2;
     font-weight:900;
     color:var(--ok);
   }
   .sales-summary-card.inactive .sales-summary-count{color:var(--danger);}
   .sales-summary-unit{
-    font-size:13px;
+    font-size:14px;
+    line-height:1.5;
     font-weight:700;
     color:var(--ink-soft);
   }
   .sales-summary-amount{
     margin-top:10px;
     font-size:18px;
+    line-height:1.5;
     font-weight:850;
     color:var(--ok);
   }
@@ -356,10 +359,10 @@
   @media(max-width:700px){
     .sales-summary-grid{grid-template-columns:1fr 1fr;gap:10px;}
     .sales-summary-card{min-height:128px;padding:15px 13px;border-radius:14px;}
-    .sales-summary-label{font-size:12px;margin-bottom:8px;}
-    .sales-summary-count{font-size:26px;}
-    .sales-summary-unit{font-size:11px;}
-    .sales-summary-amount{font-size:15px;margin-top:8px;}
+    .sales-summary-label{font-size:14px;line-height:1.5;margin-bottom:8px;}
+    .sales-summary-count{font-size:22px;line-height:1.2;}
+    .sales-summary-unit{font-size:13px;line-height:1.5;}
+    .sales-summary-amount{font-size:16px;line-height:1.5;margin-top:8px;}
   }
 
   /* ---------- Sales + commission detail cards ---------- */
@@ -384,22 +387,23 @@
     justify-content:center;
   }
   .sales-detail-label{
-    font-size:14px;
+    font-size:16px;
+    line-height:1.5;
     font-weight:800;
     color:#000;
     margin-bottom:8px;
   }
   .sales-detail-value{
-    font-size:22px;
-    line-height:1.2;
+    font-size:18px;
+    line-height:1.5;
     font-weight:900;
     color:#000;
   }
   @media(max-width:700px){
     .sales-detail-grid{grid-template-columns:1fr 1fr;gap:10px;}
     .sales-detail-card{min-height:128px;padding:15px 13px;border-radius:14px;}
-    .sales-detail-label{font-size:12px;}
-    .sales-detail-value{font-size:18px;}
+    .sales-detail-label{font-size:14px;line-height:1.5;}
+    .sales-detail-value{font-size:16px;line-height:1.5;}
   }
 
   /* ---------- Modal ---------- */
@@ -803,6 +807,38 @@
   }
 </style>
 </style>
+
+<style>
+/* Unified card typography: same sizes in all languages and screen sizes. */
+.sales-summary-card .sales-summary-label,
+.sales-detail-card .sales-detail-label{
+  font-size:12px !important;
+  line-height:1.5 !important;
+  font-weight:800 !important;
+}
+.sales-summary-card .sales-summary-count,
+.sales-summary-card .sales-summary-unit,
+.sales-summary-card .sales-summary-amount,
+.sales-detail-card .sales-detail-value{
+  font-size:10px !important;
+  line-height:1.5 !important;
+}
+/* Keep the number and its text exactly the same size. */
+.sales-summary-card .sales-summary-count,
+.sales-summary-card .sales-summary-unit{
+  font-weight:800 !important;
+}
+/* Do not let the mobile media rules change these sizes. */
+@media(max-width:700px){
+  .sales-summary-card .sales-summary-label,
+  .sales-detail-card .sales-detail-label{font-size:12px !important;}
+  .sales-summary-card .sales-summary-count,
+  .sales-summary-card .sales-summary-unit,
+  .sales-summary-card .sales-summary-amount,
+  .sales-detail-card .sales-detail-value{font-size:10px !important;}
+}
+</style>
+
 </head>
 <body>
 <div id="app"></div>
