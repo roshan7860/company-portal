@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.9">
+<meta name="app-build-version" content="1.99">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1636,7 +1636,8 @@
       {key:'ntos', label:'مشتریان'},
       {key:'sales', label:'بنډلونه'},
       {key:'report', label:'فروشات'},
-      {key:'nto_report', label:'راپور-مشتری'}
+      {key:'nto_report', label:'راپور-مشتری'},
+      {key:'daily_report', label:'ورځنی راپور'}
     ],
     nto:[
       {key:'bundle', label:'نوى بنډل استول'},
@@ -2727,7 +2728,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     if(state.section==='report') return renderReportSection(body, role, headerRow);
     if(state.section==='nto_report' && (role==='admin'||role==='manager')) return renderNtoReportSection(body, headerRow, role);
     if(state.section==='manager_sales' && role==='admin') return renderManagerSalesSection(body, headerRow, role);
-    if(state.section==='daily_report' && role==='admin') return renderDailyReportSection(body, headerRow);
+    if(state.section==='daily_report' && (role==='admin'||role==='manager')) return renderDailyReportSection(body, headerRow, role);
     if(state.section==='commission' && role==='admin') return renderCommissionSection(body, headerRow);
     if(state.section==='rolls' && role==='admin'){ renderRollsSection(body); addAdminPageExport(headerRow, 'rolls'); return; }
     if(state.section==='complaints') { renderComplaintsSection(body, role); if(role==='admin') addAdminPageExport(headerRow, 'complaints'); return; }
@@ -4745,9 +4746,18 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   }
 
   // ---------------- ADMIN: DAILY REPORT ----------------
-  function renderDailyReportSection(body, headerRow){
-    var managers = state.users.filter(function(u){return u && u.role==='manager';});
-    var customers = state.users.filter(function(u){return u && u.role==='nto';});
+  function renderDailyReportSection(body, headerRow, role){
+    // Admin sees all managers and all customers. A manager sees only their own
+    // manager row and customers created/owned by that manager.
+    var currentManager = state.currentUser && state.currentUser.username;
+    var managers = state.users.filter(function(u){
+      if(!u || u.role!=='manager') return false;
+      return role==='admin' ? true : u.username===currentManager;
+    });
+    var customers = state.users.filter(function(u){
+      if(!u || u.role!=='nto') return false;
+      return role==='admin' ? true : String(u.createdBy||'')===String(currentManager||'');
+    });
     var lang = state.language || 'ps';
     var labels = lang==='en' ? {
       title:'Daily Report', managers:'Managers Sales', customers:'Customers Sales',
