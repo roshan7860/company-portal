@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.29">
+<meta name="app-build-version" content="1.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -865,66 +865,98 @@
 .manager-sales-detail-grid{direction:ltr;}
 .manager-sales-detail-grid .sales-detail-card{direction:rtl;}
 .manager-daily-card{
-  min-height:145px;
-  padding:20px 22px;
-  justify-content:flex-start;
+  min-height:160px !important;
+  height:160px !important;
+  max-height:160px !important;
+  padding:16px 20px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-start !important;
+  overflow:hidden !important;
 }
 .manager-daily-title{
-  font-size:16px;
-  line-height:1.5;
-  font-weight:800;
-  color:#000;
-  margin-bottom:6px;
-  text-align:right;
+  flex:0 0 auto;
+  font-size:14px !important;
+  line-height:1.35 !important;
+  font-weight:800 !important;
+  color:#000 !important;
+  margin:0 0 5px 0 !important;
+  text-align:right !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
 }
 .manager-daily-chart{
+  flex:1 1 auto;
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:10px;
+  gap:12px;
   align-items:end;
-  min-height:92px;
+  min-height:0 !important;
+  height:92px;
 }
 .manager-daily-bar-wrap{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:flex-end;
-  min-height:88px;
+  min-height:0 !important;
+  height:92px;
 }
-.manager-daily-bar-value,.manager-daily-bar-label,.manager-daily-diff{
-  font-size:12px;
-  line-height:1.4;
-  font-weight:800;
-  color:#000;
-  text-align:center;
+.manager-daily-bar-value,
+.manager-daily-bar-label,
+.manager-daily-diff{
+  font-size:12px !important;
+  line-height:1.25 !important;
+  font-weight:800 !important;
+  color:#000 !important;
+  text-align:center !important;
 }
-.manager-daily-bar-value{margin-bottom:4px;}
+.manager-daily-bar-value{
+  margin:0 0 3px 0 !important;
+  min-height:15px;
+}
 .manager-daily-bar{
   width:42px;
-  min-height:10px;
-  max-height:72px;
+  min-height:8px;
+  max-height:52px;
   border-radius:8px 8px 3px 3px;
+  flex:0 0 auto;
 }
 .manager-daily-bar.today{background:#2e7d5b;}
 .manager-daily-bar.yesterday{background:#6b7280;}
-.manager-daily-bar-label{margin-top:4px;}
-.manager-daily-diff{
-  margin-top:5px;
-  display:flex;
-  justify-content:center;
-  gap:5px;
-  flex-wrap:wrap;
+.manager-daily-bar-label{
+  margin:3px 0 0 0 !important;
+  min-height:15px;
 }
-.manager-daily-diff .positive{color:#2e7d5b;}
-.manager-daily-diff .negative{color:#b3432b;}
-.manager-daily-diff .neutral{color:#000;}
-.manager-total-sales-card{justify-content:center;}
+.manager-daily-diff{
+  flex:0 0 25px;
+  margin:3px 0 0 0 !important;
+  padding:0 !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  flex-wrap:nowrap;
+  white-space:nowrap;
+}
+.manager-daily-diff .positive{color:#2e7d5b !important;}
+.manager-daily-diff .negative{color:#b3432b !important;}
+.manager-daily-diff .neutral{color:#000 !important;}
+.manager-total-sales-card{justify-content:center !important;}
 @media(max-width:700px){
   .manager-sales-detail-grid{grid-template-columns:1fr 1fr;gap:10px;}
-  .manager-daily-card{min-height:128px;padding:15px 13px;border-radius:14px;}
-  .manager-daily-title{font-size:16px;}
-  .manager-daily-bar-value,.manager-daily-bar-label,.manager-daily-diff{font-size:12px;}
-  .manager-total-sales-card{min-height:128px;padding:15px 13px;border-radius:14px;}
+  .manager-daily-card{
+    min-height:160px !important;
+    height:160px !important;
+    max-height:160px !important;
+    padding:15px 13px !important;
+    border-radius:14px;
+  }
+  .manager-daily-title{font-size:14px !important;}
+  .manager-daily-bar-value,.manager-daily-bar-label,.manager-daily-diff{font-size:11px !important;}
+  .manager-daily-bar{width:34px;max-height:48px;}
+  .manager-total-sales-card{min-height:160px !important;height:160px !important;max-height:160px !important;padding:15px 13px;border-radius:14px;}
 }
 </style>
 <style>
