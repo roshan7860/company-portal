@@ -6,7 +6,7 @@
 <title>Roshan Bundle Activation</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#101826">
-<meta name="app-build-version" content="1.19">
+<meta name="app-build-version" content="1.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2242,6 +2242,59 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     'مشتري خرڅلاو': {fa:'فروشات مشتری', en:'Customer Sales'},
     'مدير خرڅلاو': {fa:'فروشات مدیر', en:'Manager Sales'},
     'د نورو مدیرانو د مشتریانو خرڅلاو': {fa:'فروشات مشتریان سایر مدیران', en:"Sales for customers of other managers"}
+  });
+
+  // Final dashboard and common UI language overrides.
+  // These exact source strings are used by the dashboard renderer.
+  Object.assign(STATIC_TRANSLATIONS, {
+    'مدیرانو حسابونه': {fa:'حساب‌های مدیران', en:'Manager Accounts'},
+    'مشتریانو حسابونه': {fa:'حساب‌های مشتریان', en:'Customer Accounts'},
+    'بنډلونه او حالتونه': {fa:'بسته‌ها و وضعیت‌ها', en:'Bundles & Status'},
+    'د مشتریانو راپور': {fa:'گزارش مشتریان', en:'Customer Report'},
+    'د مدیرانو فروشات': {fa:'فروشات مدیران', en:'Managers Sales'},
+    'پیغامونه واستوئ': {fa:'پیام‌ها را ارسال کنید', en:'Send Messages'},
+    'شکایتونه او نظرونه': {fa:'شکایت‌ها و نظرات', en:'Complaints & Feedback'},
+    'نوی بنډل واستوئ': {fa:'بسته جدید ارسال کنید', en:'Send New Bundle'},
+    'بنډل غیر فعال کړئ': {fa:'بسته را غیرفعال کنید', en:'Deactivate Bundle'},
+    'مدير-حسابونه': {fa:'حساب‌های مدیران', en:'Manager Accounts'},
+    'مشتری-اضافه کول': {fa:'افزودن مشتری', en:'Add Customer'},
+    'بنډلونو-حالت': {fa:'وضعیت بسته‌ها', en:'Bundle Status'},
+    'مشتري خرڅلاو': {fa:'فروشات مشتری', en:'Customer Sales'},
+    'خرڅلاو راپور': {fa:'گزارش فروشات', en:'Sales Report'},
+    'پیغام-استول': {fa:'ارسال پیام', en:'Send Message'},
+    'راليږل شوي شکایتونه': {fa:'شکایت‌های ارسال‌شده', en:'Submitted Complaints'},
+    'کمیشن ټاکنه': {fa:'تعیین کمیسیون', en:'Set Commission'},
+    'ورځنی راپور': {fa:'گزارش روزانه', en:'Daily Report'},
+    'نن ورځ': {fa:'امروز', en:'Today'},
+    'تېره ورځ': {fa:'دیروز', en:'Yesterday'},
+    'توپیر': {fa:'تفاوت', en:'Difference'},
+    'فیصدي': {fa:'درصد', en:'Percentage'},
+    'فعاله شويو بنډلونو شمير': {fa:'تعداد بسته‌های فعال‌شده', en:'Number of Activated Bundles'},
+    'مدير': {fa:'مدیر', en:'Manager'},
+    'مشتری': {fa:'مشتری', en:'Customer'},
+    'خرڅلاو': {fa:'فروشات', en:'Sales'},
+    'کميسيون': {fa:'کمیسیون', en:'Commission'}
+  });
+
+  Object.assign(MISSING_UI_TRANSLATIONS, {
+    'مدیرانو حسابونه': {fa:'حساب‌های مدیران', en:'Manager Accounts'},
+    'مدیرانو حسابونه': {fa:'حساب‌های مدیران', en:'Manager Accounts'},
+    'مشتریانو حسابونه': {fa:'حساب‌های مشتریان', en:'Customer Accounts'},
+    'بنډلونه او حالتونه': {fa:'بسته‌ها و وضعیت‌ها', en:'Bundles & Status'},
+    'د مشتریانو راپور': {fa:'گزارش مشتریان', en:'Customer Report'},
+    'د مدیرانو فروشات': {fa:'فروشات مدیران', en:'Managers Sales'},
+    'پیغامونه واستوئ': {fa:'پیام‌ها را ارسال کنید', en:'Send Messages'},
+    'شکایتونه او نظرونه': {fa:'شکایت‌ها و نظرات', en:'Complaints & Feedback'},
+    'نوی بنډل واستوئ': {fa:'بسته جدید ارسال کنید', en:'Send New Bundle'},
+    'بنډل غیر فعال کړئ': {fa:'بسته را غیرفعال کنید', en:'Deactivate Bundle'},
+    'مدير-حسابونه': {fa:'حساب‌های مدیران', en:'Manager Accounts'},
+    'مشتری-اضافه کول': {fa:'افزودن مشتری', en:'Add Customer'},
+    'بنډلونو-حالت': {fa:'وضعیت بسته‌ها', en:'Bundle Status'},
+    'پیغام-استول': {fa:'ارسال پیام', en:'Send Message'},
+    'راليږل شوي شکایتونه': {fa:'شکایت‌های ارسال‌شده', en:'Submitted Complaints'},
+    'کمیشن ټاکنه': {fa:'تعیین کمیسیون', en:'Set Commission'},
+    'فعاله شويو بنډلونو شمير': {fa:'تعداد بسته‌های فعال‌شده', en:'Number of Activated Bundles'},
+    'کميسيون': {fa:'کمیسیون', en:'Commission'}
   });
 
   function lookupUITranslation(value, lang){
