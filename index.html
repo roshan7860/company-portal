@@ -3365,7 +3365,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
           var bid = el.getAttribute('data-open-process');
           var bb = state.bundles.find(function(x){return x.id===bid;});
           // A manager must never be able to take over an in-process bundle.
-          if(role==='manager' && bb && bb.status==='in_process'){
+          if(role==='manager' && bb && bb.processingBy && bb.processingBy!==state.currentUser.username){
             showToast('دا بنډل اوس د '+(bb.processingBy||'بل مدیر')+' تر پروسس لاندې دی. تر هغه چې حالت بیا د انتظار حالت ته نه وي اوښتی، کلیک نه شي کېدای.');
             return;
           }
@@ -3614,7 +3614,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     var b = state.bundles.find(function(x){return x.id===bundleId;});
     if(!b) return;
     if(b.status!=='pending' && b.status!=='resubmit' && b.status!=='in_process') return;
-    if(state.currentUser.role==='manager' && b.status==='in_process'){
+    if(state.currentUser.role==='manager' && b.processingBy && b.processingBy!==state.currentUser.username){
       showToast('دا بنډل اوس د '+(b.processingBy||'بل مدیر')+' تر پروسس لاندې دی.');
       return;
     }
@@ -3633,7 +3633,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
 
     // Open immediately so the manager can enter the comment without waiting.
     b.prevStatusBeforeProcess = previousStatus;
-    b.status = 'in_process';
+    b.status = previousStatus;
     b.processingBy = state.currentUser.username;
     state.modal = b.type==='deactivate'
       ? {type:'deactivate-confirm', bundleId:bundleId, previousStatus:previousStatus}
@@ -3650,15 +3650,15 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) throw new Error('decision-in-progress');
         var live=list.find(function(x){return x && x.id===bundleId;});
         if(!live) throw new Error('bundle-not-found');
-        if(live.status==='in_process' && live.processingBy && live.processingBy!==state.currentUser.username) throw new Error('bundle-busy');
+        if(live.processingBy && live.processingBy!==state.currentUser.username) throw new Error('bundle-busy');
         if(live.status!=='pending' && live.status!=='resubmit' && live.status!=='in_process') throw new Error('bundle-already-decided');
         var prev=live.status==='in_process' ? (live.prevStatusBeforeProcess||previousStatus) : live.status;
         live.prevStatusBeforeProcess=prev;
-        live.status='in_process';
+        live.status=prev;
         live.processingBy=state.currentUser.username;
         live.updatedAt=Date.now();
         tx.set(bundlesRef,{list:list},{merge:true});
-        b.prevStatusBeforeProcess=prev; b.status='in_process'; b.processingBy=state.currentUser.username; b.updatedAt=live.updatedAt;
+        b.prevStatusBeforeProcess=prev; b.status=prev; b.processingBy=state.currentUser.username; b.updatedAt=live.updatedAt;
         return live;
       });
     }).then(function(live){return publishBundleStatusFast(live);}).catch(function(err){
@@ -3685,7 +3685,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists && Array.isArray((snap.data()||{}).list) ? (snap.data()||{}).list : [];
         var live=list.find(function(x){return x && x.id===bundleId;});
-        if(live && live.status==='in_process' && live.processingBy===state.currentUser.username){
+        if(live && live.processingBy===state.currentUser.username && (live.status==='pending' || live.status==='resubmit' || live.status==='in_process')){
           live.status=modal.previousStatus||live.prevStatusBeforeProcess||'pending';
           live.processingBy=null;
           live.prevStatusBeforeProcess=null;
