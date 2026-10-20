@@ -3110,13 +3110,16 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
 
       var bundlesRef = db.collection('appdata').doc('bundles');
       state.pendingBundleWrites[entry.id]=true;
-      db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
+      // Publish the initial pending status immediately so the request's status
+      // channel is ready before the shared list write completes.
+      publishBundleStatusFast(entry).catch(function(err){console.warn('fast pending status failed',err);});
+      bundlesRef.get().then(function(snap){
         var d=snap.exists?(snap.data()||{}):{}, resetAt=Number(d.bundleResetAt||0);
         if(resetAt && resetAt>Number(entry.createdAt||0)) throw new Error('bundle-reset-after-submit');
         var list=Array.isArray(d.list)?d.list.slice():[];
         if(!list.some(function(x){return x&&x.id===entry.id;})) list.unshift(entry);
-        tx.set(bundlesRef,{list:list},{merge:true});
-      });}).then(function(){
+        return bundlesRef.set({list:list},{merge:true});
+      }).then(function(){
         delete state.pendingBundleWrites[entry.id];
         showToast('بنډل په بریالیتوب سره واستول شو.'); state.section='sales'; renderDashboard(document.getElementById('app'));
       }).catch(function(err){
@@ -3927,7 +3930,10 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     render();
 
     var bundlesRef=db.collection('appdata').doc('bundles');
-    db.runTransaction(function(tx){
+    // Fast status channel first: customer/admin/other manager screens can update
+    // without waiting for the large shared bundle-list transaction.
+    publishBundleStatusFast(b).then(function(){
+    return db.runTransaction(function(tx){
       return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists&&Array.isArray((snap.data()||{}).list)?(snap.data()||{}).list.slice():[];
         var idx=list.findIndex(function(x){return x&&x.id===bundleId;});
@@ -3948,6 +3954,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
         tx.set(bundlesRef,{list:list},{merge:true});
         return live;
       });
+    });
     }).then(function(live){
       Object.keys(live).forEach(function(k){b[k]=live[k];});
       return publishBundleStatusFast(live);
