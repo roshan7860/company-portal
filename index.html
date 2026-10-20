@@ -3172,11 +3172,15 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       state.deactivateDraft = {field1:''};
       var bundlesRef=db.collection('appdata').doc('bundles'), snapshot=JSON.parse(JSON.stringify(entry));
 
-      db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
+      // Use a single read followed by a direct write here rather than a
+      // transaction retry loop: this is a lightweight customer submission
+      // and the transaction on the large shared bundles document could keep
+      // the Send button spinning while retries/ contention are resolved.
+      bundlesRef.get().then(function(snap){
         var d=snap.exists?(snap.data()||{}):{}, list=Array.isArray(d.list)?d.list.slice():[];
-        if(!list.some(function(x){return x&&x.id===snapshot.id;}))list.unshift(snapshot);
-        tx.set(bundlesRef,{list:list},{merge:true});
-      });}).then(function(){
+        if(!list.some(function(x){return x&&x.id===snapshot.id;})) list.unshift(snapshot);
+        return bundlesRef.set({list:list},{merge:true});
+      }).then(function(){
         delete state.pendingDeactivateWrites[entry.id];
         state.pendingDeactivateSubmitKey = null;
         showToast('غوښتنه واستول شوه، اوس د تمې په حالت کې ده.');
