@@ -1703,10 +1703,15 @@
       var oldPatch=state.fastBundleStatuses[id];
       var incomingTime=Number(patch.updatedAt)||0;
       var oldTime=oldPatch ? (Number(oldPatch.updatedAt)||0) : 0;
-      // A listener can first receive Firestore's cached/older snapshot after
-      // being reattached. Never let that older snapshot overwrite a newer
-      // status that the customer has already received.
-      if(oldPatch && oldTime>incomingTime) return;
+      // Final decisions must never be downgraded to in_process by a cached or
+      // delayed snapshot, even when device clocks differ.
+      var finalStatuses=['approved','rejected','deactivated'];
+      var oldIsFinal=!!(oldPatch && finalStatuses.indexOf(oldPatch.status)>=0);
+      var incomingIsFinal=finalStatuses.indexOf(patch.status)>=0;
+      if(oldIsFinal && !incomingIsFinal) return;
+      if(incomingIsFinal && oldPatch && !oldIsFinal){
+        // A terminal decision always supersedes an in-progress state.
+      } else if(oldPatch && oldTime>incomingTime) return;
       state.fastBundleStatuses[id]=patch;
       var b=state.bundles.find(function(x){return x&&x.id===id;});
       if(!b) return;
@@ -1730,6 +1735,21 @@
       // customer's status backwards.
       var incomingTime=Number(incoming.updatedAt)||0;
       var patchTime=Number(patch.updatedAt)||0;
+      var finalStatuses=['approved','rejected','deactivated'];
+      var incomingIsFinal=finalStatuses.indexOf(incoming.status)>=0;
+      var patchIsFinal=finalStatuses.indexOf(patch.status)>=0;
+      // Never let an in-progress status overwrite a final decision. Device
+      // clocks are not reliable enough to decide this by updatedAt alone.
+      if(patchIsFinal && !incomingIsFinal){
+        var mergedFinal={};
+        Object.keys(incoming).forEach(function(k){mergedFinal[k]=incoming[k];});
+        Object.keys(patch).forEach(function(k){if(patch[k]!==undefined) mergedFinal[k]=patch[k];});
+        return mergedFinal;
+      }
+      if(incomingIsFinal && !patchIsFinal){
+        delete fast[incoming.id];
+        return incoming;
+      }
       // The main bundles document may still be an older cached snapshot.
       // Only let it replace the fast status after it has caught up in time.
       if(incoming.status!==patch.status || incomingTime<patchTime){
