@@ -1687,7 +1687,25 @@
     // shared bundleStatus document caused every status click to compete with
     // all other status updates. This write is independent and is delivered
     // through Firestore realtime immediately after the manager clicks.
-    return db.collection('appdata').doc('bundleStatus_'+String(bundle.id)).set(payload,{merge:true});
+    // Serialize status writes for this bundle. A delayed claim write can finish
+    // after the manager's final decision; never let that stale in_process update
+    // overwrite a newer approved/rejected/deactivated status in the fast channel.
+    var statusRef=db.collection('appdata').doc('bundleStatus_'+String(bundle.id));
+    return db.runTransaction(function(tx){
+      return tx.get(statusRef).then(function(snap){
+        var old=snap.exists?(snap.data()||{}):{};
+        var oldTime=Number(old.updatedAt)||0;
+        var newTime=Number(payload.updatedAt)||0;
+        var terminal={approved:1,rejected:1,deactivated:1,rejected_admin:1};
+        if(old.status && old.status!=='in_process' && payload.status==='in_process' && oldTime>=newTime){
+          return false;
+        }
+        // More generally, an older status event must not replace a newer event.
+        if(old.status && oldTime>newTime) return false;
+        tx.set(statusRef,payload,{merge:true});
+        return true;
+      });
+    });
   }
 
   function mergeFastBundleStatuses(statuses){
@@ -1703,15 +1721,14 @@
       var oldPatch=state.fastBundleStatuses[id];
       var incomingTime=Number(patch.updatedAt)||0;
       var oldTime=oldPatch ? (Number(oldPatch.updatedAt)||0) : 0;
-      // Final decisions must never be downgraded to in_process by a cached or
-      // delayed snapshot, even when device clocks differ.
-      var finalStatuses=['approved','rejected','deactivated'];
-      var oldIsFinal=!!(oldPatch && finalStatuses.indexOf(oldPatch.status)>=0);
-      var incomingIsFinal=finalStatuses.indexOf(patch.status)>=0;
-      if(oldIsFinal && !incomingIsFinal) return;
-      if(incomingIsFinal && oldPatch && !oldIsFinal){
-        // A terminal decision always supersedes an in-progress state.
-      } else if(oldPatch && oldTime>incomingTime) return;
+      // If a late listener event contains the manager's earlier claim, preserve
+      // a terminal decision already seen for this same bundle.
+      var terminalStatus={approved:1,rejected:1,deactivated:1,rejected_admin:1};
+      if(oldPatch && terminalStatus[oldPatch.status] && patch.status==='in_process' && oldTime>=incomingTime) return;
+      // A listener can first receive Firestore's cached/older snapshot after
+      // being reattached. Never let that older snapshot overwrite a newer
+      // status that the customer has already received.
+      if(oldPatch && oldTime>incomingTime) return;
       state.fastBundleStatuses[id]=patch;
       var b=state.bundles.find(function(x){return x&&x.id===id;});
       if(!b) return;
@@ -1735,21 +1752,6 @@
       // customer's status backwards.
       var incomingTime=Number(incoming.updatedAt)||0;
       var patchTime=Number(patch.updatedAt)||0;
-      var finalStatuses=['approved','rejected','deactivated'];
-      var incomingIsFinal=finalStatuses.indexOf(incoming.status)>=0;
-      var patchIsFinal=finalStatuses.indexOf(patch.status)>=0;
-      // Never let an in-progress status overwrite a final decision. Device
-      // clocks are not reliable enough to decide this by updatedAt alone.
-      if(patchIsFinal && !incomingIsFinal){
-        var mergedFinal={};
-        Object.keys(incoming).forEach(function(k){mergedFinal[k]=incoming[k];});
-        Object.keys(patch).forEach(function(k){if(patch[k]!==undefined) mergedFinal[k]=patch[k];});
-        return mergedFinal;
-      }
-      if(incomingIsFinal && !patchIsFinal){
-        delete fast[incoming.id];
-        return incoming;
-      }
       // The main bundles document may still be an older cached snapshot.
       // Only let it replace the fast status after it has caught up in time.
       if(incoming.status!==patch.status || incomingTime<patchTime){
@@ -3110,16 +3112,13 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
 
       var bundlesRef = db.collection('appdata').doc('bundles');
       state.pendingBundleWrites[entry.id]=true;
-      // Publish the initial pending status immediately so the request's status
-      // channel is ready before the shared list write completes.
-      publishBundleStatusFast(entry).catch(function(err){console.warn('fast pending status failed',err);});
-      bundlesRef.get().then(function(snap){
+      db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
         var d=snap.exists?(snap.data()||{}):{}, resetAt=Number(d.bundleResetAt||0);
         if(resetAt && resetAt>Number(entry.createdAt||0)) throw new Error('bundle-reset-after-submit');
         var list=Array.isArray(d.list)?d.list.slice():[];
         if(!list.some(function(x){return x&&x.id===entry.id;})) list.unshift(entry);
-        return bundlesRef.set({list:list},{merge:true});
-      }).then(function(){
+        tx.set(bundlesRef,{list:list},{merge:true});
+      });}).then(function(){
         delete state.pendingBundleWrites[entry.id];
         showToast('بنډل په بریالیتوب سره واستول شو.'); state.section='sales'; renderDashboard(document.getElementById('app'));
       }).catch(function(err){
@@ -3195,15 +3194,11 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       state.deactivateDraft = {field1:''};
       var bundlesRef=db.collection('appdata').doc('bundles'), snapshot=JSON.parse(JSON.stringify(entry));
 
-      // Use a single read followed by a direct write here rather than a
-      // transaction retry loop: this is a lightweight customer submission
-      // and the transaction on the large shared bundles document could keep
-      // the Send button spinning while retries/ contention are resolved.
-      bundlesRef.get().then(function(snap){
+      db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
         var d=snap.exists?(snap.data()||{}):{}, list=Array.isArray(d.list)?d.list.slice():[];
-        if(!list.some(function(x){return x&&x.id===snapshot.id;})) list.unshift(snapshot);
-        return bundlesRef.set({list:list},{merge:true});
-      }).then(function(){
+        if(!list.some(function(x){return x&&x.id===snapshot.id;}))list.unshift(snapshot);
+        tx.set(bundlesRef,{list:list},{merge:true});
+      });}).then(function(){
         delete state.pendingDeactivateWrites[entry.id];
         state.pendingDeactivateSubmitKey = null;
         showToast('غوښتنه واستول شوه، اوس د تمې په حالت کې ده.');
@@ -3667,12 +3662,9 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
       : {type:'process', bundleId:bundleId, previousStatus:previousStatus, draftComment:''};
     render();
 
-    // Publish the small per-bundle status immediately so the customer,
-    // other managers and admin see the processing state without waiting for
-    // the large shared bundles document write. The transaction below remains
-    // authoritative; if it rejects the claim, the fast status is rolled back.
-    b.updatedAt=Date.now();
-    var earlyStatusWrite=publishBundleStatusFast(b);
+    // The Firestore transaction is the authoritative claim. The fast status
+    // document is published only AFTER the claim succeeds, so two managers can
+    // never both claim the same bundle.
     var bundlesRef=db.collection('appdata').doc('bundles');
     db.runTransaction(function(tx){
       return tx.get(bundlesRef).then(function(snap){
@@ -3694,11 +3686,7 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
     }).then(function(live){return publishBundleStatusFast(live);}).catch(function(err){
       console.error(err);
       var live=state.bundles.find(function(x){return x.id===bundleId;});
-      if(live){
-        live.status=previousStatus;live.processingBy=null;live.prevStatusBeforeProcess=null;live.updatedAt=Date.now();
-        // Restore the shared status if the authoritative claim failed.
-        publishBundleStatusFast(live).catch(function(e){console.warn('fast status rollback failed',e);});
-      }
+      if(live){live.status=previousStatus;live.processingBy=null;live.prevStatusBeforeProcess=null;}
       if(state.modal && state.modal.bundleId===bundleId) state.modal=null;
       showToast(err && err.message==='bundle-busy' ? 'دا بنډل اوس د بل مدیر تر پروسس لاندې دی.' : 'د بنډل حالت ثبت نه شو، مهرباني وکړئ بیا هڅه وکړئ.');
       render();
@@ -3900,76 +3888,35 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   // ---------------- DEACTIVATE-CONFIRM MODAL (admin/manager: deactivate bundles request) ----------------
   function submitDeactivate(){
     if(!state.modal) return;
-    var modal=state.modal;
-    var bundleId=modal.bundleId;
-    var b=state.bundles.find(function(x){return x.id===bundleId;});
+    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
     if(!b) return;
-    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
-    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
-    state.pendingBundleDecisions[bundleId]=true;
-
-    var actor=state.currentUser.username;
-    var actionAt=Date.now();
-    var before={
-      status:b.status, actionedBy:b.actionedBy, actionedAt:b.actionedAt,
-      processingBy:b.processingBy, prevStatusBeforeProcess:b.prevStatusBeforeProcess,
-      ntoSeen:b.ntoSeen, updatedAt:b.updatedAt
-    };
-    // Apply the final state locally immediately, then persist that exact state
-    // transactionally to the shared bundle list. Publish the fast status only
-    // after the authoritative write succeeds, so a stale "in_process" record
-    // cannot be re-published over the final deactivated status.
-    b.status='deactivated';
-    b.actionedBy=actor;
-    b.actionedAt=actionAt;
-    b.processingBy=null;
-    b.prevStatusBeforeProcess=null;
-    b.ntoSeen=false;
-    b.updatedAt=actionAt;
-    state.modal=null;
+    b.status = 'deactivated';
+    b.actionedBy = state.currentUser.username;
+    b.actionedAt = Date.now();
+    b.processingBy = null;
+    b.prevStatusBeforeProcess = null;
+    b.ntoSeen = false;
+    b.updatedAt = Date.now();
+    // Send the customer-facing status first; only then start the larger
+    // bundles persistence so the two writes do not compete with each other.
+    var fastDeactivateWrite = publishBundleStatusFast(b);
+    // Close immediately; persist the decision in the background after the
+    // fast status write has completed.
+    state.modal = null;
     render();
-
-    var bundlesRef=db.collection('appdata').doc('bundles');
-    // Fast status channel first: customer/admin/other manager screens can update
-    // without waiting for the large shared bundle-list transaction.
-    publishBundleStatusFast(b).then(function(){
-    return db.runTransaction(function(tx){
-      return tx.get(bundlesRef).then(function(snap){
+    fastDeactivateWrite.then(function(){
+      var bundlesRef=db.collection('appdata').doc('bundles'), snapshot=JSON.parse(JSON.stringify(b));
+      return db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists&&Array.isArray((snap.data()||{}).list)?(snap.data()||{}).list.slice():[];
-        var idx=list.findIndex(function(x){return x&&x.id===bundleId;});
+        var idx=list.findIndex(function(x){return x&&x.id===snapshot.id;});
         if(idx<0) throw new Error('bundle-not-found');
-        var live=list[idx];
-        // Only the manager who claimed this request (or an admin) may finish it.
-        if(live.status==='in_process' && live.processingBy && live.processingBy!==actor && state.currentUser.role!=='admin'){
-          throw new Error('bundle-busy');
-        }
-        live.status='deactivated';
-        live.actionedBy=actor;
-        live.actionedAt=actionAt;
-        live.processingBy=null;
-        live.prevStatusBeforeProcess=null;
-        live.ntoSeen=false;
-        live.updatedAt=actionAt;
-        list[idx]=live;
-        tx.set(bundlesRef,{list:list},{merge:true});
-        return live;
-      });
-    });
-    }).then(function(live){
-      Object.keys(live).forEach(function(k){b[k]=live[k];});
-      return publishBundleStatusFast(live);
+        list[idx]=snapshot; tx.set(bundlesRef,{list:list},{merge:true});
+      });});
     }).then(function(){
       showToast('بنډلونه غیري فعاله شول.');
-      render();
     }).catch(function(err){
       console.error(err);
-      if(b.actionedAt===actionAt && b.actionedBy===actor){
-        Object.keys(before).forEach(function(k){b[k]=before[k];});
-      }
-      showToast('د غیري فعالولو د ثبت پر مهال تېروتنه وشوه؛ مهرباني وکړئ بیا هڅه وکړئ.');
-      render();
-    }).finally(function(){
-      delete state.pendingBundleDecisions[bundleId];
+      showToast('د غیري فعالولو د ثبت پر مهال تېروتنه وشوه.');
     });
   }
 
