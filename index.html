@@ -3877,35 +3877,72 @@ Object.assign(MISSING_UI_TRANSLATIONS,__ROSHAN_EXTRA_COMPLETE_UI);
   // ---------------- DEACTIVATE-CONFIRM MODAL (admin/manager: deactivate bundles request) ----------------
   function submitDeactivate(){
     if(!state.modal) return;
-    var b = state.bundles.find(function(x){return x.id===state.modal.bundleId;});
+    var modal=state.modal;
+    var bundleId=modal.bundleId;
+    var b=state.bundles.find(function(x){return x.id===bundleId;});
     if(!b) return;
-    b.status = 'deactivated';
-    b.actionedBy = state.currentUser.username;
-    b.actionedAt = Date.now();
-    b.processingBy = null;
-    b.prevStatusBeforeProcess = null;
-    b.ntoSeen = false;
-    b.updatedAt = Date.now();
-    // Send the customer-facing status first; only then start the larger
-    // bundles persistence so the two writes do not compete with each other.
-    var fastDeactivateWrite = publishBundleStatusFast(b);
-    // Close immediately; persist the decision in the background after the
-    // fast status write has completed.
-    state.modal = null;
+    if(state.pendingBundleDecisions && state.pendingBundleDecisions[bundleId]) return;
+    if(!state.pendingBundleDecisions) state.pendingBundleDecisions={};
+    state.pendingBundleDecisions[bundleId]=true;
+
+    var actor=state.currentUser.username;
+    var actionAt=Date.now();
+    var before={
+      status:b.status, actionedBy:b.actionedBy, actionedAt:b.actionedAt,
+      processingBy:b.processingBy, prevStatusBeforeProcess:b.prevStatusBeforeProcess,
+      ntoSeen:b.ntoSeen, updatedAt:b.updatedAt
+    };
+    // Apply the final state locally immediately, then persist that exact state
+    // transactionally to the shared bundle list. Publish the fast status only
+    // after the authoritative write succeeds, so a stale "in_process" record
+    // cannot be re-published over the final deactivated status.
+    b.status='deactivated';
+    b.actionedBy=actor;
+    b.actionedAt=actionAt;
+    b.processingBy=null;
+    b.prevStatusBeforeProcess=null;
+    b.ntoSeen=false;
+    b.updatedAt=actionAt;
+    state.modal=null;
     render();
-    fastDeactivateWrite.then(function(){
-      var bundlesRef=db.collection('appdata').doc('bundles'), snapshot=JSON.parse(JSON.stringify(b));
-      return db.runTransaction(function(tx){return tx.get(bundlesRef).then(function(snap){
+
+    var bundlesRef=db.collection('appdata').doc('bundles');
+    db.runTransaction(function(tx){
+      return tx.get(bundlesRef).then(function(snap){
         var list=snap.exists&&Array.isArray((snap.data()||{}).list)?(snap.data()||{}).list.slice():[];
-        var idx=list.findIndex(function(x){return x&&x.id===snapshot.id;});
+        var idx=list.findIndex(function(x){return x&&x.id===bundleId;});
         if(idx<0) throw new Error('bundle-not-found');
-        list[idx]=snapshot; tx.set(bundlesRef,{list:list},{merge:true});
-      });});
+        var live=list[idx];
+        // Only the manager who claimed this request (or an admin) may finish it.
+        if(live.status==='in_process' && live.processingBy && live.processingBy!==actor && state.currentUser.role!=='admin'){
+          throw new Error('bundle-busy');
+        }
+        live.status='deactivated';
+        live.actionedBy=actor;
+        live.actionedAt=actionAt;
+        live.processingBy=null;
+        live.prevStatusBeforeProcess=null;
+        live.ntoSeen=false;
+        live.updatedAt=actionAt;
+        list[idx]=live;
+        tx.set(bundlesRef,{list:list},{merge:true});
+        return live;
+      });
+    }).then(function(live){
+      Object.keys(live).forEach(function(k){b[k]=live[k];});
+      return publishBundleStatusFast(live);
     }).then(function(){
       showToast('بنډلونه غیري فعاله شول.');
+      render();
     }).catch(function(err){
       console.error(err);
-      showToast('د غیري فعالولو د ثبت پر مهال تېروتنه وشوه.');
+      if(b.actionedAt===actionAt && b.actionedBy===actor){
+        Object.keys(before).forEach(function(k){b[k]=before[k];});
+      }
+      showToast('د غیري فعالولو د ثبت پر مهال تېروتنه وشوه؛ مهرباني وکړئ بیا هڅه وکړئ.');
+      render();
+    }).finally(function(){
+      delete state.pendingBundleDecisions[bundleId];
     });
   }
 
